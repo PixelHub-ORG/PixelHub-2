@@ -1,31 +1,41 @@
-# ----------------------------------------------------------------------------
-# Deploy on Render Workflow
-# This workflow triggers a deployment webhook in render only after the "Pytest"
-# workflow has successfully completed on the main branch.
-# ----------------------------------------------------------------------------
-
 name: Deploy on Render
 
 on:
   workflow_run:
     # Trigger this workflow only after "Pytest" completes
-    workflows: 
+    workflows:
       - "Pytest"
     types:
       - completed
 
+  release:
+    types: [published]
+
 jobs:
   deploy:
-    # Run deployment only if the tests succeeded AND we're on the main branch
-    if: github.event.workflow_run.conclusion == 'success' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
 
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
 
+      - name: Decide deployment target
+        id: branch_check
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            echo "Deploying release from main"
+            echo "DEPLOY=main" >> $GITHUB_ENV
+          elif [ "${{ github.event.workflow_run.conclusion }}" = "success" ] && [ "${{ github.event.workflow_run.head_branch }}" = "trunk" ]; then
+            echo "Deploying from trunk (development)"
+            echo "DEPLOY=trunk" >> $GITHUB_ENV
+          else
+            echo "No deploy triggered"
+            echo "DEPLOY=none" >> $GITHUB_ENV
+
       - name: Deploy to Render
+        if: env.DEPLOY != 'none'
         env:
           deploy_url: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
         run: |
+          echo "Deploying branch: $DEPLOY"
           curl "$deploy_url"
