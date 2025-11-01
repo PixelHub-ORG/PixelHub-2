@@ -58,7 +58,18 @@ function send_query() {
                             <div class="card">
                                 <div class="card-body">
                                     <div class="d-flex align-items-center justify-content-between">
-                                        <h3><a href="${dataset.url}">${dataset.title}</a></h3>
+                                        <div class="d-flex align-items-center">
+                                            
+                                            <h3 class="m-0 me-5">
+                                                <a href="${dataset.url}">${dataset.title}</a>
+                                            </h3>
+
+                                            <span class="text-secondary small">
+                                                ${dataset.download_count}
+                                                <i data-feather="download" class="align-middle me-1"></i>
+                                            </span>
+
+                                        </div>
                                         <div>
                                             <span class="badge bg-primary" style="cursor: pointer;" onclick="set_publication_type_as_query('${dataset.publication_type}')">${dataset.publication_type}</span>
                                         </div>
@@ -129,6 +140,11 @@ function send_query() {
 
                         document.getElementById('results').appendChild(card);
                     });
+
+                    // Fix load icons bug
+                    if (typeof feather !== 'undefined') {
+                        feather.replace();
+                    }
                 });
         });
     });

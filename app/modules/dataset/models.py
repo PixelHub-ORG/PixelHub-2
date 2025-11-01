@@ -100,6 +100,9 @@ class DataSet(db.Model):
         from app.modules.dataset.services import SizeService
 
         return SizeService().get_human_readable_size(self.get_file_total_size())
+  
+    def get_download_count(self):
+        return db.session.query(DSDownloadRecord).filter_by(dataset_id=self.id).count()
 
     def get_uvlhub_doi(self):
         from app.modules.dataset.services import DataSetService
@@ -125,6 +128,7 @@ class DataSet(db.Model):
             "files_count": self.get_files_count(),
             "total_size_in_bytes": self.get_file_total_size(),
             "total_size_in_human_format": self.get_file_total_size_for_human(),
+            "download_count": self.get_download_count(),
         }
 
     def __repr__(self):
