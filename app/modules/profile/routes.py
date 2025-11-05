@@ -10,7 +10,6 @@ from app.modules.profile.services import UserProfileService
 from app.modules.auth.models import User
 
 
-
 @profile_bp.route("/profile/edit", methods=["GET", "POST"])
 @login_required
 def edit_profile():
@@ -57,12 +56,12 @@ def my_profile():
     )
 
 
-@profile_bp.route("/profile/<int:user_id>", methods=["GET"], endpoint="public_profile")
+@profile_bp.route("/<int:user_id>", methods=["GET"], endpoint="public_profile")
 def public_profile(user_id: int):
     user = User.query.get_or_404(user_id)
+
     page = request.args.get("page", 1, type=int)
     per_page = 10
-
     q = DataSet.query.filter_by(user_id=user.id).order_by(DataSet.created_at.desc())
     pagination = q.paginate(page=page, per_page=per_page)
     total_datasets = q.count()
