@@ -53,3 +53,22 @@ def my_profile():
         pagination=user_datasets_pagination,
         total_datasets=total_datasets_count,
     )
+
+    @profile_bp.route("/profile/<int:user_id>")
+    def public_profile(user_id):
+        user = User.query.get_or_404(user_id)
+        page = request.args.get("page", 1, type=int)
+        per_page = 5
+        q = DataSet.query.filter_by(user_id=user.id).order_by(DataSet.created_at.desc())
+        pagination = q.paginate(page=page, per_page=per_page)
+        total_datasets = q.count()
+
+        return render_template(
+            "profile/summary.html",
+            user_profile=user.profile,
+            user=user,                   
+            datasets=pagination.items,
+            pagination=pagination,
+            total_datasets=total_datasets,
+        )
+
