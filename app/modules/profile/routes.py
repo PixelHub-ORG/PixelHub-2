@@ -56,10 +56,10 @@ def my_profile():
         total_datasets=total_datasets_count,
     )
 
+
 @profile_bp.route("/profile/<int:user_id>", methods=["GET"], endpoint="public_profile")
 def public_profile(user_id: int):
     user = User.query.get_or_404(user_id)
-
     page = request.args.get("page", 1, type=int)
     per_page = 10
 
