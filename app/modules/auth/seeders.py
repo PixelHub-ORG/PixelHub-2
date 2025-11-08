@@ -1,5 +1,4 @@
 from app.modules.auth.models import User
-from app.modules.cart.models import Cart
 from app.modules.profile.models import UserProfile
 from core.seeders.BaseSeeder import BaseSeeder
 
@@ -33,10 +32,6 @@ class AuthSeeder(BaseSeeder):
             }
             user_profile = UserProfile(**profile_data)
             user_profiles.append(user_profile)
-
-            if not user.cart:
-                cart = Cart(user=user)
-                self.session.add(cart)
 
         # Seeding user profiles
         self.seed(user_profiles)
