@@ -56,7 +56,7 @@ def my_profile():
     )
 
 
-@profile_bp.route("/<int:user_id>", methods=["GET"], endpoint="public_profile")
+@profile_bp.route("/profile/<int:user_id>", methods=["GET"], endpoint="public_profile")
 def public_profile(user_id: int):
     user = User.query.get_or_404(user_id)
 
