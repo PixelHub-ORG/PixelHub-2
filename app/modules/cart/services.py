@@ -24,10 +24,7 @@ class CartService(BaseService):
 
     def view_cart(self, user_id: int):
         cart_items = self.cart_repository.get_cart_items(user_id)
-        return [
-                    {"cart_item_id": item.id, "feature_model_id": item.feature_model_id}
-                    for item in cart_items
-                ]
+        return [{"cart_item_id": item.id, "feature_model_id": item.feature_model_id} for item in cart_items]
 
     def delete_from_cart(self, user_id: int, item_id: int = None):
         cart = self.cart_repository.get_cart_by_user_id(user_id)
@@ -52,6 +49,8 @@ class CartService(BaseService):
         form.feature_models = [item.feature_model for item in cart.items]
         dataset = self.dataset_service.create_from_form(form, user)
         self.cart_repository.clear_cart(user_id)
-        return {"message": "DataSet created successfully.",
-                "dataset_id": dataset.id,
-                "models_included": [fm.id for fm in dataset.feature_models]}, 201
+        return {
+            "message": "DataSet created successfully.",
+            "dataset_id": dataset.id,
+            "models_included": [fm.id for fm in dataset.feature_models],
+        }, 201
