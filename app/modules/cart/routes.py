@@ -63,6 +63,7 @@ def delete_from_cart():
 @login_required
 def create_dataset():
     form = CartCreateDatasetForm()
+    models = []
 
     if request.method == "POST":
         if not form.validate_on_submit():
@@ -72,4 +73,16 @@ def create_dataset():
         return jsonify(result), status_code
 
     cart_items = cart_service.view_cart(current_user.id)
-    return render_template("cart/create_dataset.html", form=form, cart_items=cart_items)
+    for item in cart_items:
+        feature_model = fm_service.get_by_id(item["feature_model_id"])
+        if feature_model:
+            fm_meta = feature_model.fm_meta_data
+            models.append(
+                {
+                    "id": feature_model.id,
+                    "name": fm_meta.title if fm_meta else "No title",
+                    "description": fm_meta.description if fm_meta else "",
+                    "authors": fm_meta.authors if fm_meta else [],
+                }
+            )
+    return render_template("cart/create_dataset.html", form=form, models=models)

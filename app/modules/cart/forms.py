@@ -1,15 +1,55 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, TextAreaField
-from wtforms.validators import DataRequired, Length
+from wtforms import StringField, SubmitField, TextAreaField, SelectField, FieldList, FormField
+from wtforms.validators import DataRequired, URL, Optional
+from app.modules.dataset.models import PublicationType
 
+class AuthorForm(FlaskForm):
+    name = StringField("Name", validators=[DataRequired()])
+    affiliation = StringField("Affiliation")
+    orcid = StringField("ORCID")
+    gnd = StringField("GND")
+
+    class Meta:
+        csrf = False  # disable CSRF because is subform
+
+    def get_author(self):
+        return {
+            "name": self.name.data,
+            "affiliation": self.affiliation.data,
+            "orcid": self.orcid.data,
+        }
 
 class CartCreateDatasetForm(FlaskForm):
-    name = StringField(
-        "Dataset Name",
-        validators=[DataRequired(message="Dataset name is required"), Length(max=150)],
-        render_kw={"placeholder": "Enter dataset name"},
+    title = StringField("Title", validators=[DataRequired()])
+    desc = TextAreaField("Description", validators=[DataRequired()])
+    publication_type = SelectField(
+        "Publication type",
+        choices=[(pt.value, pt.name.replace("_", " ").title()) for pt in PublicationType],
+        validators=[DataRequired()],
     )
-    description = TextAreaField(
-        "Description", validators=[Length(max=1000)], render_kw={"placeholder": "Enter dataset description (optional)"}
-    )
-    submit = SubmitField("Create My Dataset")
+    publication_doi = StringField("Publication DOI", validators=[Optional(), URL()])
+    tags = StringField("Tags (separated by commas)")
+    authors = FieldList(FormField(AuthorForm))
+    submit = SubmitField("Create Dataset")
+
+    def get_dsmetadata(self):
+
+        publication_type_converted = self.convert_publication_type(self.publication_type.data)
+
+        return {
+            "title": self.title.data,
+            "description": self.desc.data,
+            "publication_type": publication_type_converted,
+            "publication_doi": self.publication_doi.data,
+            "dataset_doi": self.dataset_doi.data,
+            "tags": self.tags.data,
+        }
+
+    def convert_publication_type(self, value):
+        for pt in PublicationType:
+            if pt.value == value:
+                return pt.name
+        return "NONE"
+
+    def get_authors(self):
+        return [author.get_author() for author in self.authors]
