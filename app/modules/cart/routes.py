@@ -25,6 +25,7 @@ def view_cart_page():
                     "id": feature_model.id,
                     "name": fm_meta.title if fm_meta else "No title",
                     "description": fm_meta.description if fm_meta else "",
+                    "authors": fm_meta.authors if fm_meta else [],
                 }
             )
 
