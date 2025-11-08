@@ -91,9 +91,13 @@ class DataSetService(BaseService):
 
     def total_dataset_views(self) -> int:
         return self.dsviewrecord_repostory.total_dataset_views()
-
+    
     def get_dataset_leaderboard(self, period="week") -> DataSet:
+        if period not in ["week", "month"]:
+            raise ValueError("Periodo no soportado: usa 'week' o 'month'")
+        
         return self.dsdownloadrecord_repository.top_3_dowloaded_datasets_per_week(period=period)
+
 
     def create_from_form(self, form, current_user) -> DataSet:
         main_author = {
