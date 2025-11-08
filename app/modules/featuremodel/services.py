@@ -8,6 +8,9 @@ class FeatureModelService(BaseService):
         super().__init__(FeatureModelRepository())
         self.hubfile_service = HubfileService()
 
+    def get_feature_model_by_id(self, fm_id: int):
+        return self.repository.get_by_id(fm_id)
+
     def total_feature_model_views(self) -> int:
         return self.hubfile_service.total_hubfile_views()
 
