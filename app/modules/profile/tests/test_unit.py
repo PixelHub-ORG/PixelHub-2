@@ -37,6 +37,7 @@ def test_edit_profile_page_get(test_client):
 
     logout(test_client)
 
+
 def test_view_user_profile(test_client):
     """
     Tests access to a user's profile page via a GET request.
