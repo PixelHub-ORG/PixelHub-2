@@ -3,6 +3,7 @@ from wtforms import StringField, SubmitField, TextAreaField, SelectField, FieldL
 from wtforms.validators import DataRequired, URL, Optional
 from app.modules.dataset.models import PublicationType
 
+
 class AuthorForm(FlaskForm):
     name = StringField("Name", validators=[DataRequired()])
     affiliation = StringField("Affiliation")
@@ -18,6 +19,7 @@ class AuthorForm(FlaskForm):
             "affiliation": self.affiliation.data,
             "orcid": self.orcid.data,
         }
+
 
 class CartCreateDatasetForm(FlaskForm):
     title = StringField("Title", validators=[DataRequired()])
