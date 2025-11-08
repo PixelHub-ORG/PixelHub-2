@@ -1,5 +1,4 @@
 from app.modules.cart.models import Cart, CartItem
-
 from core.repositories.BaseRepository import BaseRepository
 
 

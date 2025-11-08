@@ -1,5 +1,5 @@
 from app.modules.auth.services import AuthenticationService
-from app.modules.cart.repositories import CartRepository, CartItemRepository
+from app.modules.cart.repositories import CartItemRepository, CartRepository
 from app.modules.dataset.services import DataSetService
 from core.services.BaseService import BaseService
 
