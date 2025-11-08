@@ -1,7 +1,7 @@
+from app.modules.dataset.models import PublicationType
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, TextAreaField, SelectField, FieldList, FormField
 from wtforms.validators import DataRequired, URL, Optional
-from app.modules.dataset.models import PublicationType
 
 
 class AuthorForm(FlaskForm):
