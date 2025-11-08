@@ -93,6 +93,7 @@ class DataSetService(BaseService):
         return self.dsviewrecord_repostory.total_dataset_views()
     
     def get_dataset_leaderboard(self, period="week") -> DataSet:
+        period = ''.join(e for e in period if e.isalnum())
         if period not in ["week", "month"]:
             raise ValueError("Periodo no soportado: usa 'week' o 'month'")
         
