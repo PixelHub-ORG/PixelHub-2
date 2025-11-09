@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import DataRequired, URL, Optional
+from wtforms.validators import DataRequired, URL, Optional
 from wtforms import FieldList, FormField, SelectField, StringField, SubmitField, TextAreaField
 
 from app.modules.dataset.models import PublicationType
