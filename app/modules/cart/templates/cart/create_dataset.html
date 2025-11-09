@@ -137,10 +137,17 @@
                     </div>
 
                     <div class="text-end mt-3">
-                        <button type="button" class="btn btn-success" onclick="submitCartDatasetForm()">
-                            <i data-feather='plus-square'></i> Create Dataset
-                        </button>
+                        {% if models %}
+                            <button type="button" class="btn btn-success" onclick="submitCartDatasetForm()">
+                                <i data-feather='plus-square'></i> Create Dataset
+                            </button>
+                        {% else %}
+                            <button type="button" class="btn btn-success" disabled>
+                                <i data-feather='plus-square'></i> Create Dataset
+                            </button>
+                        {% endif %}
                     </div>
+
 
                 </div>
             </div>
@@ -197,7 +204,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function deleteCartItem(modelID) {
-    fetch("/featuremodel/cart/delete", {
+    fetch("/user/cart/delete", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
