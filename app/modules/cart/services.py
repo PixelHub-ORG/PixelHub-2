@@ -1,3 +1,6 @@
+from app import db
+from app.modules.featuremodel.models import FeatureModel
+from app.modules.hubfile.models import Hubfile
 from app.modules.auth.services import AuthenticationService
 from app.modules.cart.repositories import CartItemRepository, CartRepository
 from app.modules.dataset.services import DataSetService
@@ -39,18 +42,45 @@ class CartService(BaseService):
                 return {"message": "Item not found in cart."}, 404
         return {"message": "Item removed from cart."}, 200
 
-    def create_dataset(self, user_id: int, form):
+    def create_dataset(self, user_id, form):
         cart = self.cart_repository.get_cart_by_user_id(user_id)
         if not cart or not cart.items:
             return {"message": "Cart is empty."}, 400
+
         user = self.auth_service.get_authenticated_user()
         if not user or user.id != user_id:
             return {"message": "User not authenticated."}, 401
-        form.feature_models = [item.feature_model for item in cart.items]
+
+        form.feature_models = []
+
         dataset = self.dataset_service.create_from_form(form, user)
+        if not dataset:
+            return {"message": "Error creating dataset."}, 500
+
+        for item in cart.items:
+            orig_fm = item.feature_model
+
+            new_fm = FeatureModel(
+                data_set_id=dataset.id,
+                fm_meta_data_id=orig_fm.fm_meta_data_id,
+            )
+            db.session.add(new_fm)
+
+            for file in orig_fm.files:
+                clone_data = {
+                    col.name: getattr(file, col.name)
+                    for col in file.__table__.columns
+                    if col.name not in ("id", "feature_model_id")
+                }
+                new_file = Hubfile(**clone_data)
+                new_file.feature_model = new_fm
+                db.session.add(new_file)
+
+        db.session.commit()
+
         self.cart_repository.clear_cart(user_id)
+
         return {
             "message": "DataSet created successfully.",
             "dataset_id": dataset.id,
-            "models_included": [fm.id for fm in dataset.feature_models],
         }, 201

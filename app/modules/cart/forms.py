@@ -1,8 +1,9 @@
 from flask_wtf import FlaskForm
-from wtforms.validators import DataRequired, URL, Optional
-from wtforms import FieldList, FormField, SelectField, StringField, SubmitField, TextAreaField
+from wtforms import FieldList, FormField, SelectField, StringField, TextAreaField, SubmitField
+from wtforms.validators import DataRequired, Optional, URL
 
 from app.modules.dataset.models import PublicationType
+from app.modules.dataset.forms import AuthorForm
 
 
 class AuthorForm(FlaskForm):
@@ -31,12 +32,12 @@ class CartCreateDatasetForm(FlaskForm):
         validators=[DataRequired()],
     )
     publication_doi = StringField("Publication DOI", validators=[Optional(), URL()])
+    dataset_doi = StringField("Dataset DOI", validators=[Optional(), URL()])
     tags = StringField("Tags (separated by commas)")
     authors = FieldList(FormField(AuthorForm))
     submit = SubmitField("Create Dataset")
 
     def get_dsmetadata(self):
-
         publication_type_converted = self.convert_publication_type(self.publication_type.data)
 
         return {
@@ -52,7 +53,8 @@ class CartCreateDatasetForm(FlaskForm):
         for pt in PublicationType:
             if pt.value == value:
                 return pt.name
-        return "NONE"
+        # valor por defecto si algo raro viene del form
+        return PublicationType.NONE.name if hasattr(PublicationType, "NONE") else "NONE"
 
     def get_authors(self):
-        return [author.get_author() for author in self.authors]
+        return [subform.get_author() for subform in self.authors]
