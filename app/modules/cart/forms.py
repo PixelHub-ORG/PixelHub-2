@@ -3,7 +3,6 @@ from wtforms import FieldList, FormField, SelectField, StringField, TextAreaFiel
 from wtforms.validators import DataRequired, Optional, URL
 
 from app.modules.dataset.models import PublicationType
-from app.modules.dataset.forms import AuthorForm
 
 
 class AuthorForm(FlaskForm):
