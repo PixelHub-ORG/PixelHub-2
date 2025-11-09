@@ -1,9 +1,12 @@
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
+from datetime import datetime, timezone
 from app.modules.dataset.services import DataSetService
 from app.modules.dataset.repositories import DSDownloadRecordRepository
 from app.modules.dataset.models import DataSet
+from app.modules.dataset.services import DSDownloadRecordService
 
+FIXED_TIME = datetime(2025, 12, 1, 15, 0, 0, tzinfo=timezone.utc)
 
 @pytest.fixture
 def mock_dsdownloadrecord_repository():
@@ -19,6 +22,117 @@ def dataset_service(mock_dsdownloadrecord_repository):
     service.dsdownloadrecord_repository = mock_dsdownloadrecord_repository
     return service
 
+@pytest.fixture
+def download_service(mock_dsdownloadrecord_repository):
+    service = DSDownloadRecordService()
+    service.repository = mock_dsdownloadrecord_repository
+    return service
+
+
+def test_download_counter_registered_for_authenticated_user(
+    download_service,
+    mock_dsdownloadrecord_repository
+):
+    test_user_id = 99
+    test_dataset_id = 1
+    test_cookie = "auth-cookie-123"
+    
+    download_service.create(
+        user_id=test_user_id,
+        dataset_id=test_dataset_id,
+        download_date=FIXED_TIME,
+        download_cookie=test_cookie,
+    )
+
+    mock_dsdownloadrecord_repository.create.assert_called_once_with(
+        user_id=test_user_id,
+        dataset_id=test_dataset_id,
+        download_date=FIXED_TIME,
+        download_cookie=test_cookie,
+    )
+
+def test_download_counter_registered_for_unauthenticated_user(
+    download_service,
+    mock_dsdownloadrecord_repository
+):
+    test_dataset_id = 2
+    test_cookie = "anon-cookie-456"
+
+    download_service.create(
+        user_id=None, 
+        dataset_id=test_dataset_id,
+        download_date=FIXED_TIME, 
+        download_cookie=test_cookie,
+    )
+
+    mock_dsdownloadrecord_repository.create.assert_called_once()
+    args, kwargs = mock_dsdownloadrecord_repository.create.call_args
+    assert kwargs.get('user_id') is None
+    assert kwargs.get('dataset_id') == test_dataset_id
+    assert kwargs.get('download_cookie') == test_cookie
+
+def test_multiple_downloads_from_same_user_are_registered(
+    download_service,
+    mock_dsdownloadrecord_repository
+):
+    test_user_id = 77
+    test_dataset_id = 5
+    test_cookie = "repetitive-cookie"
+    
+    download_service.create(
+        user_id=test_user_id,
+        dataset_id=test_dataset_id,
+        download_date=FIXED_TIME,
+        download_cookie=test_cookie,
+    )
+    
+    download_service.create(
+        user_id=test_user_id,
+        dataset_id=test_dataset_id,
+        download_date=FIXED_TIME,
+        download_cookie=test_cookie,
+    )
+
+    assert mock_dsdownloadrecord_repository.create.call_count == 2
+    
+    mock_dsdownloadrecord_repository.create.assert_any_call(
+        user_id=test_user_id,
+        dataset_id=test_dataset_id,
+        download_date=FIXED_TIME,
+        download_cookie=test_cookie,
+    )
+
+def test_download_counter_raises_error_with_null_dataset_id(
+    download_service,
+    mock_dsdownloadrecord_repository
+):
+    mock_dsdownloadrecord_repository.create.side_effect = Exception("IntegrityError: dataset_id is required")
+
+    with pytest.raises(Exception, match="IntegrityError: dataset_id is required"):
+        download_service.create(
+            user_id=1,
+            dataset_id=None,
+            download_date=FIXED_TIME,
+            download_cookie="null-id-cookie",
+        )
+        
+    mock_dsdownloadrecord_repository.create.assert_called_once()
+
+def test_download_counter_raises_error_with_null_cookie(
+    download_service,
+    mock_dsdownloadrecord_repository
+):
+    mock_dsdownloadrecord_repository.create.side_effect = Exception("IntegrityError: download_cookie cannot be null")
+
+    with pytest.raises(Exception, match="IntegrityError: download_cookie cannot be null"):
+        download_service.create(
+            user_id=1,
+            dataset_id=3,
+            download_date=FIXED_TIME,
+            download_cookie=None,
+        )
+        
+    mock_dsdownloadrecord_repository.create.assert_called_once()
 
 def test_get_dataset_leaderboard_success(
     dataset_service,
