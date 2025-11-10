@@ -48,17 +48,12 @@ def setup_user_and_model(test_client_with_user):
         user = User.query.filter_by(email=user_email).first()
 
         dummy_ds_metadata = DSMetaData(
-            title="Dummy Dataset Meta",
-            description="Dummy description",
-            publication_type=PublicationType.OTHER
+            title="Dummy Dataset Meta", description="Dummy description", publication_type=PublicationType.OTHER
         )
         db.session.add(dummy_ds_metadata)
         db.session.commit()
 
-        dummy_dataset = DataSet(
-            user_id=user.id,
-            ds_meta_data_id=dummy_ds_metadata.id
-        )
+        dummy_dataset = DataSet(user_id=user.id, ds_meta_data_id=dummy_ds_metadata.id)
         db.session.add(dummy_dataset)
         db.session.commit()
         dummy_ds_id = dummy_dataset.id
@@ -172,8 +167,9 @@ def test_create_dataset_missing_required_fields_returns_400(setup_user_and_model
     data = response.get_json()
 
     assert data is not None
-    assert ("title" in data.get("message", {}) or
-            "title" in data.get("errors", {})), "The error must mention the 'title' field."
+    assert "title" in data.get("message", {}) or "title" in data.get(
+        "errors", {}
+    ), "The error must mention the 'title' field."
     logout(test_client)
 
 
@@ -216,6 +212,7 @@ def test_create_dataset_with_invalid_doi_format_returns_400(setup_user_and_model
     data = response.get_json()
 
     assert data is not None
-    assert ("publication_doi" in data.get("message", {}) or
-            "publication_doi" in data.get("errors", {})), "The error must mention the 'publication_doi' field."
+    assert "publication_doi" in data.get("message", {}) or "publication_doi" in data.get(
+        "errors", {}
+    ), "The error must mention the 'publication_doi' field."
     logout(test_client)
