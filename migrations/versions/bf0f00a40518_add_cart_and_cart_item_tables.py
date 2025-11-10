@@ -32,7 +32,6 @@ def upgrade():
     sa.ForeignKeyConstraint(['feature_model_id'], ['feature_model.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.drop_table('webhook')
     # ### end Alembic commands ###
 
 
