@@ -76,7 +76,7 @@ def badge_svg_download(dataset_id):
       {link_end}
     </svg>'''
 
-    # Aquí forzamos la descarga del archivo en vez de abrirlo
+    # Descarga forzada
     resp = Response(svg, mimetype="image/svg+xml")
     resp.headers["Content-Disposition"] = f'attachment; filename="badge_{dataset_id}.svg"'
     resp.headers["Access-Control-Allow-Origin"] = "*"
@@ -136,13 +136,13 @@ def badge_svg(dataset_id):
 
 @badge_bp.route("/badge/<int:dataset_id>/embed")
 def badge_embed(dataset_id):
-    # Devuelve Markdown y HTML para incrustar, con enlace de descarga del SVG
+    # Devuelve Markdown y HTML
     ds = get_dataset(dataset_id)
     if not ds:
         return {"error": "Dataset not found"}, 404
 
     svg_url = url_for("badge.badge_svg", dataset_id=dataset_id, _external=True)
-    target = ds["url"] or svg_url  # clic en badge → url externa si hay, sino SVG
+    target = ds["url"] or svg_url
     download_url = svg_url  # descarga del SVG
 
     markdown = f'[![{ds["title"]} - {ds["downloads"]} DL - DOI {ds["doi"]}]({svg_url})]({target})'
