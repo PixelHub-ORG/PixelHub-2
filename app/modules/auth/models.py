@@ -14,9 +14,7 @@ class User(db.Model, UserMixin):
 
     orcid_id = db.Column(db.String(32), unique=True, nullable=True, index=True)
 
-    created_at = db.Column(
-        db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
-    )
+    created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
 
     data_sets = db.relationship("DataSet", backref="user", lazy=True)
     profile = db.relationship("UserProfile", backref="user", uselist=False)

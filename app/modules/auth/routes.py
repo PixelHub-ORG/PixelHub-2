@@ -20,16 +20,12 @@ def show_signup_form():
     if form.validate_on_submit():
         email = form.email.data
         if not authentication_service.is_email_available(email):
-            return render_template(
-                "auth/signup_form.html", form=form, error=f"Email {email} in use"
-            )
+            return render_template("auth/signup_form.html", form=form, error=f"Email {email} in use")
 
         try:
             user = authentication_service.create_with_profile(**form.data)
         except Exception as exc:
-            return render_template(
-                "auth/signup_form.html", form=form, error=f"Error creating user: {exc}"
-            )
+            return render_template("auth/signup_form.html", form=form, error=f"Error creating user: {exc}")
 
         # Log user
         login_user(user, remember=True)
@@ -48,9 +44,7 @@ def login():
         if authentication_service.login(form.email.data, form.password.data):
             return redirect(url_for("public.index"))
 
-        return render_template(
-            "auth/login_form.html", form=form, error="Invalid credentials"
-        )
+        return render_template("auth/login_form.html", form=form, error="Invalid credentials")
 
     return render_template("auth/login_form.html", form=form)
 
@@ -97,20 +91,14 @@ def orcid_callback():
     full_name = token.get("name")
 
     if not orcid_id:
-        return render_template(
-            "auth/login_form.html", error="Could not retrieve ORCID iD."
-        )
+        return render_template("auth/login_form.html", error="Could not retrieve ORCID iD.")
 
     # Find or create a local user account
     try:
-        user = authentication_service.find_or_create_by_orcid(
-            orcid_id=orcid_id, full_name=full_name
-        )
+        user = authentication_service.find_or_create_by_orcid(orcid_id=orcid_id, full_name=full_name)
     except Exception as e:
         # Handle error during user creation
-        return render_template(
-            "auth/login_form.html", error=f"Error creating user profile: {e}"
-        )
+        return render_template("auth/login_form.html", error=f"Error creating user profile: {e}")
 
     # Log the user in
     login_user(user, remember=True)
