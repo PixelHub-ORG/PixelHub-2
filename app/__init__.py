@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from flask import Flask
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
+from authlib.integrations.flask_client import OAuth
 
 from core.configuration.configuration import get_app_version
 from core.managers.config_manager import ConfigManager
@@ -17,6 +18,7 @@ load_dotenv()
 # Create the instances
 db = SQLAlchemy()
 migrate = Migrate()
+oauth = OAuth()
 
 
 def create_app(config_name="development"):
@@ -26,9 +28,25 @@ def create_app(config_name="development"):
     config_manager = ConfigManager(app)
     config_manager.load_config(config_name=config_name)
 
+    # Load ORCID config from .env
+    app.config["ORCID_CLIENT_ID"] = os.environ.get("ORCID_CLIENT_ID")
+    app.config["ORCID_CLIENT_SECRET"] = os.environ.get("ORCID_CLIENT_SECRET")
+
     # Initialize SQLAlchemy and Migrate with the app
     db.init_app(app)
     migrate.init_app(app, db)
+    oauth.init_app(app)
+
+    # Register the ORCID client
+    oauth.register(
+        name="orcid",
+        client_id=app.config["ORCID_CLIENT_ID"],
+        client_secret=app.config["ORCID_CLIENT_SECRET"],
+        authorize_url="https://orcid.org/oauth/authorize",
+        access_token_url="https://orcid.org/oauth/token",
+        client_kwargs={"scope": "/authenticate"},
+        userinfo_compliance_fix=lambda token: {"sub": token.get("orcid")},
+    )
 
     # Register modules
     module_manager = ModuleManager(app)
