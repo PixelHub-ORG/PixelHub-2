@@ -1,10 +1,10 @@
 import os
 
+from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
 from flask import Flask
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
-from authlib.integrations.flask_client import OAuth
 
 from core.configuration.configuration import get_app_version
 from core.managers.config_manager import ConfigManager
