@@ -169,6 +169,12 @@ chico sundermann">
                                 up</a>
 
                         {% else %}
+                        <button id="cart-button" class="btn btn-light btn-sm position-relative" style="border-radius: 5px;">
+                            <i data-feather="shopping-cart"></i>
+                            <span id="cart-count-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                0
+                            </span>
+                        </button>
 
                         <a class="nav-icon dropdown-toggle d-inline-block d-sm-none" href="#" data-bs-toggle="dropdown">
                             <i class="align-middle" data-feather="user"></i> 
@@ -298,6 +304,32 @@ Romero-Organvidez, D., Galindo, J. A., Sundermann, C., Horcas, J.-M., & Benavide
         textToCopy = textToCopy.trim();
         navigator.clipboard.writeText(textToCopy);
     }
+
+    function updateCartCount() {
+        fetch('/user/cart/count')
+            .then(response => response.json())
+            .then(data => {
+                const badge = document.getElementById('cart-count-badge');
+                if (badge) {
+                    badge.textContent = data.count;
+                }
+            })
+            .catch(error => console.error('Error fetching cart count:', error));
+    }
+
+    function goToCartPage(event) {
+        event.preventDefault();
+        window.location.href = '/user/cart/view_page';
+    } 
+
+    document.addEventListener('DOMContentLoaded', () => {
+        feather.replace();
+        updateCartCount();
+        const cartButton = document.getElementById('cart-button');
+        if (cartButton) {
+            cartButton.addEventListener('click', goToCartPage);
+    }
+    });
 
 </script>
 

@@ -274,6 +274,12 @@
                                 <button onclick="viewFile('{{ file.id }}')" class="btn btn-outline-secondary btn-sm" style="border-radius: 5px;">
                                     <i data-feather="eye"></i> View
                                 </button>
+                                <button 
+                                    onclick="addCart('{{ feature_model.id }}')"  
+                                    class="btn btn-outline-success btn-sm"
+                                    style="border-radius: 5px;">
+                                    <i data-feather="plus"></i> Add
+                                </button>
 
                                 <div class="btn-group" role="group">
                                     <button id="btnGroupDrop{{ file.id }}" type="button" class="btn btn-outline-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" style=" border-radius: 5px;">
@@ -385,6 +391,26 @@
             })
             .catch(error => console.error('Error loading file:', error));
     }
+
+    function addCart(modelId) {
+        fetch("/featuremodel/cart/add", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ item_id: modelId })
+        })
+        .then(async response => {
+            const data = await response.json(); 
+            alert(data.message); 
+            if (response.ok) {
+                updateCartCount();
+            }
+        })
+        .catch(err => console.error("Error adding to cart:", err));
+    }
+
+
+
+
 
     function showLoading() {
         document.getElementById("loading").style.display = "initial";
