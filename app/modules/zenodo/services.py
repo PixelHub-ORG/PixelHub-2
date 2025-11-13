@@ -93,7 +93,9 @@ class ZenodoService(BaseService):
             return jsonify(
                 {
                     "success": False,
-                    "messages": f"Failed to create test deposition on Zenodo. Response code: {response.status_code}. Body: {response.text}",
+                    "messages": "Failed to create test deposition on Zenodo.\n"
+                    "Response code: {}. Body: {}".format(response.status_code, response.text)
+
                 }
             )
 
@@ -236,8 +238,9 @@ class ZenodoService(BaseService):
             return f"10.5281/zenodo.{next_suffix}"
         except Exception as e:
             # Safe fallback to a deterministic, readable format if the query fails
-            logger.warning(f"Falling back DOI computation due to error: {e}")
-            return f"10.5281/zenodo.1000001"
+            logger.warning("Falling back DOI computation due to error: %s", e)
+
+            return "10.5281/zenodo.1000001"
 
     def publish_deposition(self, deposition_id: int) -> dict:
         """

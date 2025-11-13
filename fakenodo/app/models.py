@@ -1,8 +1,9 @@
+from dataclasses import asdict, dataclass
 from typing import Optional
-from dataclasses import dataclass,asdict
-
 
 "Modelo Deposition: Se usa para poder crear y hacer fetch de Records"
+
+
 @dataclass
 class Deposition:
     id: int
@@ -15,7 +16,7 @@ class Deposition:
     def to_dict(self):
         "Convertir el modelo en un json"
         return asdict(self)
-    
+
     @staticmethod
     def from_dict(data: dict):
         "Crear una Deposition desde un diccionario"
@@ -23,6 +24,8 @@ class Deposition:
 
 
 "Modelo File: Los archivos asociados a una deposición"
+
+
 @dataclass
 class File:
     id: int
@@ -34,14 +37,16 @@ class File:
     def to_dict(self):
         "Convertir el modelo en un json"
         return asdict(self)
-    
+
     @staticmethod
     def from_dict(data: dict):
         "Crear un File desde un diccionario"
         return File(**data)
-    
+
 
 "Modelo Creator: Representa el creado de una deposición"
+
+
 @dataclass
 class Creator:
     id: int
@@ -51,8 +56,7 @@ class Creator:
     def to_dict(self):
         "Convertir el modelo en un json"
         return asdict(self)
-    
+
     def from_dict(data: dict):
         "Crear un Creator desde un diccionario"
         return Creator(**data)
-

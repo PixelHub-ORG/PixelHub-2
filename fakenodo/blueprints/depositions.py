@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from fakenodo.app.services import DepositionService
+from app.services import DepositionService
 
 depositions_bp = Blueprint("depositions_bp", __name__)
 
