@@ -1,0 +1,96 @@
+# .github/workflows/CI_notify-completion.yml
+
+name: Workflow Completion Notifier
+
+on:
+  workflow_run:
+    workflows:
+      - "Publish image in Docker Hub"
+      - "Deploy on Render"
+      - "Sync main to PixelHub-X"
+      - "Commits Syntax Checker"
+      - "Test Coverage"
+      - "Python Lint"
+      - "Pytest"
+    types:
+      - completed
+
+concurrency:
+  group: completion-notify-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
+jobs:
+  check-and-notify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check workflow statuses
+        id: check_runs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          # Give the API a 10-second grace period to settle
+          sleep 10
+          
+          echo "Checking statuses for SHA: $SHA on branch: ${{ github.event.workflow_run.head_branch }}"
+
+          # Get all workflow runs for this specific commit
+          runs=$(gh run list --head-sha $SHA --repo $REPO --json status,conclusion,name,html_url)
+          
+          echo "Found runs:"
+          echo "$runs" | jq .
+
+          # Check if any are still in_progress or queued
+          # If they are, this is not the last workflow, so we exit.
+          if echo "$runs" | jq -e '.[] | select(.status != "completed")' > /dev/null; then
+            echo "Workflows are still running. This is not the final workflow. Exiting."
+            echo "all_complete=false" >> $GITHUB_ENV
+            exit 0
+          fi
+
+          echo "All workflows for $SHA are completed."
+          echo "all_complete=true" >> $GITHUB_ENV
+
+          # Now, check if any of the completed workflows failed
+          if echo "$runs" | jq -e '.[] | select(.conclusion != "success")' > /dev/null; then
+            echo "One or more workflows failed."
+            echo "final_status=failure" >> $GITHUB_ENV
+            echo "final_color=danger" >> $GITHUB_ENV
+            echo "final_title=Failed ❌" >> $GITHUB_ENV
+          else
+            echo "All workflows succeeded."
+            echo "final_status=success" >> $GITHUB_ENV
+            echo "final_color=good" >> $GITHUB_ENV
+            echo "final_title=Succeeded ✅" >> $GITHUB_ENV
+          fi
+
+          # Build a formatted list of all workflows and their results
+          summary=$(echo "$runs" | jq -r '
+            map("\(.conclusion | sub("success"; "✅") | sub("failure"; "❌") | sub("cancelled"; "⏹️") | sub("skipped"; "➖")) [\(.name)](\(.html_url))") |
+            join("\n")
+          ')
+          
+          # Store summary in GITHUB_ENV for the next step
+          # We need to format it for JSON
+          echo "summary<<EOF" >> $GITHUB_ENV
+          echo "$summary" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Send notification to Slack/Discord/Teams
+        if: env.all_complete == 'true'
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.NOTIFY_WEBHOOK_URL }}
+          SLACK_COLOR: ${{ env.final_color }}
+          SLACK_TITLE: "Workflows for ${{ github.event.workflow_run.head_branch }} ${{(env.final_title)}}"
+          SLACK_MESSAGE: |
+            All workflows for commit `${{ github.event.workflow_run.head_sha }}` have completed.
+            
+            *Branch:* `${{ github.event.workflow_run.head_branch }}`
+            *Triggered by:* `${{ github.event.workflow_run.actor.login }}`
+            *View Commit:* <${{ github.event.workflow_run.head_commit.url }}|Link>
+            
+            *Run results:*
+            ${{ env.summary }}
