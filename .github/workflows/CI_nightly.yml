@@ -2,7 +2,7 @@ name: Nightly
 
 on:
   schedule:
-    - cron: "*/10 * * * *"   # Ejecutar cada 10 minutos (para pruebas)
+    - cron: "*/5 * * * *"   # Ejecutar cada 5 minutos (para pruebas)
   workflow_dispatch:
 
 concurrency:
@@ -14,7 +14,6 @@ permissions:
   issues: write
 
 jobs:
-
   quality:
     name: Quality (Lint + Tests)
     runs-on: ubuntu-latest
@@ -51,7 +50,6 @@ jobs:
           pip install pytest
           pytest -q
 
-
   security:
     name: Security Scan
     runs-on: ubuntu-latest
@@ -73,7 +71,6 @@ jobs:
           pip install -r requirements.txt
           pip-audit --progress-spinner off
 
-
   notify:
     name: Notify on Failure
     runs-on: ubuntu-latest
@@ -88,6 +85,7 @@ jobs:
 
     steps:
       - name: Build failure summary
+        id: summary
         run: |
           FAIL_MSG=""
 
@@ -99,15 +97,17 @@ jobs:
             FAIL_MSG="${FAIL_MSG}- Security Scan ha fallado. "
           fi
 
-          echo "FAIL_MESSAGE=$FAIL_MSG" >> $GITHUB_ENV
+          # Guardamos una versión sin espacios raros para outputs
+          echo "fail_message=${FAIL_MSG}" >> $GITHUB_OUTPUT
 
       - name: Create Issue
         uses: actions/github-script@v7
         env:
-          FAIL_MESSAGE: ${{ env.FAIL_MESSAGE }}
+          FAIL_MESSAGE: ${{ steps.summary.outputs.fail_message }}
         with:
           script: |
             const failMsg = process.env.FAIL_MESSAGE || 'Revisa los logs del workflow.';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const body = `
 ### 🔴 Nightly FAILED
 
@@ -119,7 +119,7 @@ ${failMsg}
 ---
 
 ### 📎 Enlace al run:
-${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}
+${runUrl}
 
 Revisa los logs para más detalles.
             `;
@@ -142,16 +142,15 @@ Revisa los logs para más detalles.
           from: "Nightly Bot <${{ secrets.SMTP_USER }}>"
           subject: "❌ Nightly FAILED en ${{ github.repository }}"
 
-          to: |
-            loufouela@alum.us.es
+          to: loufouela@alum.us.es
 
           body: |
             ❌ Nightly FAILED en ${{ github.repository }}
 
             Problemas detectados:
-            ${{ env.FAIL_MESSAGE }}
+            ${{ steps.summary.outputs.fail_message }}
 
             Enlace al run:
             ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-            Revisa los logs para más información.
+            Revisa logs para más información.
