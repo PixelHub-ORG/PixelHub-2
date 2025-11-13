@@ -244,6 +244,5 @@ class ZenodoService(BaseService):
 
         Returns:
             str: The DOI of the deposition.
-            Testing CI_coverge
         """
         return self.get_deposition(deposition_id).get("doi")
