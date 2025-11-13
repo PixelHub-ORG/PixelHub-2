@@ -1,5 +1,7 @@
 # .github/workflows/CI_notify-completion.yml
 
+# This is a test workflow that triggers on the completion of other workflows.
+
 name: Workflow Completion Notifier
 
 on:
@@ -14,6 +16,9 @@ on:
       - "Pytest"
     types:
       - completed
+  push:
+    branches:
+      - fix/upgrade-ci-cd # TEMPORARY trigger for testing
 
 concurrency:
   group: completion-notify-${{ github.event.workflow_run.head_sha }}
