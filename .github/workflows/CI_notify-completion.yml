@@ -12,7 +12,6 @@ on:
       - "Pytest"
     types:
       - completed
-  workflow_dispatch:
 
 concurrency:
   group: completion-notify-${{ github.event.workflow_run.head_sha }}
@@ -76,34 +75,40 @@ jobs:
             echo "EOF"
           } >> $GITHUB_ENV
 
-      - name: Send Discord notification
+            - name: Send Discord notification
         if: env.all_complete == 'true'
         env:
           DISCORD_WEBHOOK: ${{ secrets.NOTIFY_WEBHOOK_URL }}
         run: |
+          set -euo pipefail
+
+          # Build a clean, beautiful embed
           payload=$(jq -n \
             --arg title "Workflows for ${CTX_BRANCH} ${final_title}" \
-            --arg desc "**Commit:** \`${CTX_SHA}\`\n**Author:** \`${CTX_ACTOR}\`\n[View Commit](${CTX_COMMIT_URL})" \
+            --arg commit "**Commit:** \`${CTX_SHA}\`\n**Author:** \`${CTX_ACTOR}\`\n**Branch:** \`${CTX_BRANCH}\`\n🔗 **View Commit:** ${CTX_COMMIT_URL}" \
             --arg summary "$summary" \
-            --argjson color ${final_color} \
+            --argjson color "${final_color}" \
             '{
               embeds: [
                 {
                   title: $title,
-                  description: $desc,
+                  description: $commit,
                   color: $color,
                   fields: [
                     {
                       name: "Workflow Results",
                       value: $summary
                     }
-                  ]
+                  ],
+                  timestamp: (now | todate)
                 }
               ]
             }'
           )
 
+          echo "Sending Discord notification..."
           curl -X POST \
             -H "Content-Type: application/json" \
             -d "$payload" \
             "$DISCORD_WEBHOOK"
+
