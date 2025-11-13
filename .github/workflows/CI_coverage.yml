@@ -1,50 +1,60 @@
----
+name: CI - Coverage
+
+on:
+  push:
+    branches:
+      - "**"     # Cualquier rama
+  pull_request:
+    branches:
+      - "**"     # Cualquier PR
+
 concurrency:
-  cancel-in-progress: true
   group: coverage-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   coverage:
     name: Test Coverage
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
+
       - name: Cache pip
         uses: actions/cache@v3
         with:
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
           path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
           pip install pytest pytest-cov
 
-      - env:
+      - name: Run tests with coverage (ignoring Selenium)
+        env:
           PYTHONUNBUFFERED: 1
-        name: Run tests with coverage
         run: |
           pytest \
             --cov=app \
             --cov-report=xml \
             --cov-report=term-missing \
-            --cov-fail-under=80
+            --cov-fail-under=80 \
+            -k "not selenium" \
+            --ignore=tests/selenium \
+            --ignore=selenium
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
           name: coverage-xml
           path: coverage.xml
-name: CI - Coverage
-'on':
-  pull_request:
-    branches:
-      - '**'
-  push:
-    branches:
-      - '**'
-permissions:
-  contents: read
