@@ -8,7 +8,6 @@ name: Workflow Completion Notifier
 
 on:
   workflow_run:
-    # 1. This list MUST include ALL workflows you want to monitor
     workflows:
       - "Publish image in Docker Hub"
       - "Deploy on Render"
@@ -18,7 +17,7 @@ on:
       - "Python Lint"
       - "Pytest"
     types:
-      - completed # Triggers when a workflow is finished (success or failure)
+      - completed
 
 concurrency:
   group: completion-notify-${{ github.event.workflow_run.head_sha || github.sha }}
@@ -29,7 +28,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Set variables based on how the workflow was triggered
       - name: Set Context-Aware Variables
         id: vars
         run: |
@@ -47,7 +45,6 @@ jobs:
             echo "CTX_COMMIT_URL=${{ github.event.workflow_run.head_commit.url }}" >> $GITHUB_ENV
           fi
 
-      # Step 2: Check statuses (with polling logic for 'push' tests)
       - name: Check workflow statuses
         id: check_runs
         env:
@@ -144,7 +141,6 @@ jobs:
           echo "$summary" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
-      # Step 3: Send notification using the context-aware variables
       - name: Send notification to Slack/Discord/Teams
         if: env.all_complete == 'true'
         uses: rtCamp/action-slack-notify@v2
