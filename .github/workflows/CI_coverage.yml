@@ -49,6 +49,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # necesario para ver diffs bien
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -66,11 +68,61 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-cov
 
+      # 1) Obtener ficheros cambiados en este push/PR
+      - name: Get changed files
+        id: changed
+        uses: tj-actions/changed-files@v45
+
+      # 2) Decidir si merece la pena correr cobertura
+      - name: Decide whether to run coverage
+        id: coverage_filter
+        run: |
+          # Módulos que SÍ nos interesan (prefijo de ruta)
+          INCLUDED_PREFIX="app/modules"
+
+          # Módulos que NO queremos cubrir nunca (puedes añadir más separados por espacio)
+          EXCLUDED_PREFIXES="app/modules/selenium_experimental"
+
+          RUN_COVERAGE="false"
+
+          echo "Ficheros cambiados:"
+          echo "${{ steps.changed.outputs.all_changed_files }}"
+
+          for file in ${{ steps.changed.outputs.all_changed_files }}; do
+            case "$file" in
+              ${INCLUDED_PREFIX}/*)
+                # Comprobamos si está en la lista de excluidos
+                SKIP="false"
+                for ex in $EXCLUDED_PREFIXES; do
+                  case "$file" in
+                    ${ex}/*)
+                      SKIP="true"
+                      ;;
+                  esac
+                done
+
+                if [ "$SKIP" = "false" ]; then
+                  RUN_COVERAGE="true"
+                fi
+                ;;
+            esac
+          done
+
+          echo "run_coverage=$RUN_COVERAGE" >> $GITHUB_OUTPUT
+          echo "Decisión final run_coverage=$RUN_COVERAGE"
+
+      - name: Skipping coverage (no relevant changes)
+        if: steps.coverage_filter.outputs.run_coverage != 'true'
+        run: |
+          echo "No se han modificado módulos relevantes. No se ejecuta coverage."
+
       - name: Run tests with coverage (ignoring Selenium)
+        if: steps.coverage_filter.outputs.run_coverage == 'true'
         env:
           PYTHONUNBUFFERED: 1
         run: |
-          pytest \
+          echo "Ejecutando coverage porque hay módulos relevantes cambiados."
+          pytest app/modules \
             --cov=app \
             --cov-report=xml \
             --cov-report=term-missing \
@@ -79,6 +131,7 @@ jobs:
             --ignore-glob="**/test_selenium.py"
 
       - name: Upload coverage report
+        if: steps.coverage_filter.outputs.run_coverage == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: coverage-xml
