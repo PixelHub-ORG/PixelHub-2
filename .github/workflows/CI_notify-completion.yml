@@ -38,7 +38,6 @@ jobs:
       actions: read
 
     steps:
-      # --- THIS IS THE FIX ---
       # Step 1: Set variables based on how the workflow was triggered
       - name: Set Context-Aware Variables
         id: vars
@@ -57,7 +56,6 @@ jobs:
             echo "CTX_COMMIT_URL=${{ github.event.workflow_run.head_commit.url }}" >> $GITHUB_ENV
           fi
 
-      # --- THIS IS THE OTHER FIX ---
       # Step 2: Check statuses (with polling logic for 'push' tests)
       - name: Check workflow statuses
         id: check_runs
@@ -139,6 +137,31 @@ jobs:
             echo "final_title=Succeeded ✅" >> $GITHUB_ENV
           fi
 
-          # Build a formatted list of ALL workflows (including this one)
-          summary=$(echo "$runs" | jq -r '
-            map("\(.conclusion | sub("success"; "✅") | sub("failure"; "❌") | sub("cancelled"; "⏹
+          # The 'summary=$(...)' command must be on a single line
+          summary=$(echo "$runs" | jq -r 'map("\(.conclusion | sub("success"; "✅") | sub("failure";; "❌") | sub("cancelled"; "⏹️") | sub("skipped"; "➖")) [\(.name)](\(.url))") | join("\n")')
+          
+          echo "summary<<EOF" >> $GITHUB_ENV
+          echo "$summary" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      # Step 3: Send notification using the context-aware variables
+      - name: Send notification to Slack/Discord/Teams
+        if: env.all_complete == 'true'
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.NOTIFY_WEBHOOK_URL }}
+          SLACK_COLOR: ${{ env.final_color }}
+          
+          # --- THIS IS THE FIX ---
+          # Use ${{ env.VAR_NAME }} syntax for all variables
+          
+          SLACK_TITLE: "Workflows for ${{ env.CTX_BRANCH }} ${{ env.final_title }}"
+          SLACK_MESSAGE: |
+            All workflows for commit `${{ env.CTX_SHA }}` have completed.
+            
+            *Branch:* `${{ env.CTX_BRANCH }}`
+            *Triggered by:* `${{ env.CTX_ACTOR }}`
+            *View Commit:* <${{ env.CTX_COMMIT_URL }}|Link>
+            
+            *Run results:*
+            ${{ env.summary }}
