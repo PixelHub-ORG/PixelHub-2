@@ -1,0 +1,159 @@
+# ----------------------------------------------------------------------------
+# Workflow Completion Notifier
+# Sends a single notification (e.g., to Discord) after all workflows
+# for a specific commit have finished.
+# ----------------------------------------------------------------------------
+
+name: Workflow Completion Notifier
+
+on:
+  workflow_run:
+    workflows:
+      - "Publish image in Docker Hub"
+      - "Deploy on Render"
+      - "Sync main to PixelHub-X"
+      - "Commits Syntax Checker"
+      - "Test Coverage"
+      - "Python Lint"
+      - "Pytest"
+    types:
+      - completed
+
+concurrency:
+  group: completion-notify-${{ github.event.workflow_run.head_sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  check-and-notify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set Context-Aware Variables
+        id: vars
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "This is a 'push' event. Setting test variables."
+            echo "CTX_SHA=${{ github.sha }}" >> $GITHUB_ENV
+            echo "CTX_BRANCH=${{ github.ref_name }}" >> $GITHUB_ENV
+            echo "CTX_ACTOR=${{ github.actor }}" >> $GITHUB_ENV
+            echo "CTX_COMMIT_URL=${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}" >> $GITHUB_ENV
+          elif [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "This is a 'workflow_run' event. Setting real variables."
+            echo "CTX_SHA=${{ github.event.workflow_run.head_sha }}" >> $GITHUB_ENV
+            echo "CTX_BRANCH=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_ENV
+            echo "CTX_ACTOR=${{ github.event.workflow_run.actor.login }}" >> $GITHUB_ENV
+            echo "CTX_COMMIT_URL=${{ github.event.workflow_run.head_commit.url }}" >> $GITHUB_ENV
+          fi
+
+      - name: Check workflow statuses
+        id: check_runs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          # Get the name of this *current* workflow
+          THIS_WORKFLOW_NAME="${{ github.workflow }}"
+
+          # This script behaves differently based on the trigger
+          if [ "${{ github.event_name }}" = "push" ]; then
+            # --- PUSH TEST LOGIC: Poll until complete ---
+            echo "PUSH trigger: Polling for completion (max 10 minutes)..."
+            TIMEOUT_SECONDS=600 # 10 minutes
+            START_TIME=$(date +%s)
+            
+            while true; do
+              runs=$(gh run list --commit $CTX_SHA --repo $REPO --json status,conclusion,name,url)
+              
+              # *** FIX ***
+              # Check if any runs are NOT completed, IGNORING this workflow itself
+              if echo "$runs" | jq -e ".[] | select(.name != \"$THIS_WORKFLOW_NAME\" and .status != \"completed\")" > /dev/null; then
+                echo "Workflows are still running. Waiting 30 seconds..."
+                
+                # Check for timeout
+                CURRENT_TIME=$(date +%s)
+                ELAPSED=$(($CURRENT_TIME - $START_TIME))
+                
+                if [ $ELAPSED -gt $TIMEOUT_SECONDS ]; then
+                  echo "Polling timed out after $TIMEOUT_SECONDS seconds. Exiting."
+                  echo "all_complete=false" >> $GITHUB_ENV
+                  exit 0
+                fi
+                
+                sleep 30
+              else
+                # All *other* runs are completed
+                echo "All other workflows for $CTX_SHA are completed."
+                echo "all_complete=true" >> $GITHUB_ENV
+                break # Exit the loop
+              fi
+            done
+            # --- End of PUSH TEST LOGIC ---
+
+          else
+            # --- WORKFLOW_RUN LOGIC: Check once (the real logic) ---
+            echo "WORKFLOW_RUN trigger: Checking status once..."
+            sleep 10 # Give the API a 10-second grace period to settle
+            
+            runs=$(gh run list --commit $CTX_SHA --repo $REPO --json status,conclusion,name,url)
+            
+            # *** FIX ***
+            # Check if any runs are NOT completed, IGNORING this workflow itself
+            if echo "$runs" | jq -e ".[] | select(.name != \"$THIS_WORKFLOW_NAME\" and .status != \"completed\")" > /dev/null; then
+              echo "Workflows are still running. This is not the final workflow. Exiting."
+              echo "all_complete=false" >> $GITHUB_ENV
+              exit 0
+            fi
+            
+            echo "All other workflows for $CTX_SHA are completed."
+            echo "all_complete=true" >> $GITHUB_ENV
+            # --- End of WORKFLOW_RUN LOGIC ---
+          fi
+
+          # --- This part is now common for both triggers ---
+          echo "Checking for failures..."
+          
+          # *** FIX ***
+          # When checking for failure, we check ALL runs, including this one (in case it failed)
+          # No, wait. We should only check *other* runs for the summary.
+          
+          # Re-fetch the runs, or just use the 'runs' variable
+          
+          # Check for failure among *other* workflows
+          if echo "$runs" | jq -e ".[] | select(.name != \"$THIS_WORKFLOW_NAME\" and .conclusion != \"success\")" > /dev/null; then
+            echo "One or more *other* workflows failed."
+            echo "final_status=failure" >> $GITHUB_ENV
+            echo "final_color=danger" >> $GITHUB_ENV
+            echo "final_title=Failed ❌" >> $GITHUB_ENV
+          else
+            echo "All other workflows succeeded."
+            echo "final_status=success" >> $GITHUB_ENV
+            echo "final_color=good" >> $GITHUB_ENV
+            echo "final_title=Succeeded ✅" >> $GITHUB_ENV
+          fi
+
+          # Build a formatted list of ALL workflows (including this one)
+          summary=$(echo "$runs" | jq -r '
+            map("\(.conclusion | sub("success"; "✅") | sub("failure"; "❌") | sub("cancelled"; "⏹️") | sub("skipped"; "➖")) [\(.name)](\(.url))") |
+            join("\n")
+          ')
+          
+          echo "summary<<EOF" >> $GITHUB_ENV
+          echo "$summary" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Send notification to Slack/Discord/Teams
+        if: env.all_complete == 'true'
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.NOTIFY_WEBHOOK_URL }}
+          SLACK_COLOR: ${{ env.final_color }}
+          SLACK_TITLE: "Workflows for $CTX_BRANCH ${{(env.final_title)}}"
+          SLACK_MESSAGE: |
+            All workflows for commit `$CTX_SHA` have completed.
+            
+            *Branch:* `$CTX_BRANCH`
+            *Triggered by:* `$CTX_ACTOR`
+            *View Commit:* <$CTX_COMMIT_URL|Link>
+            
+            *Run results:*
+            ${{ env.summary }}
