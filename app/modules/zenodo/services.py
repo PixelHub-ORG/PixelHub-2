@@ -33,16 +33,19 @@ class ZenodoService(BaseService):
 
         return ZENODO_API_URL
 
-
     def __init__(self):
         super().__init__(ZenodoRepository())
         self.ZENODO_API_URL = self.get_zenodo_url()
         # Ensure we target the depositions collection
-        if not self.ZENODO_API_URL.rstrip('/').endswith('/depositions'):
+        if not self.ZENODO_API_URL.rstrip("/").endswith("/depositions"):
             self.ZENODO_API_URL = f"{self.ZENODO_API_URL.rstrip('/')}/depositions"
         self.headers = {"Content-Type": "application/json"}
         # Ensure params is always defined (e.g., access_token or empty)
-        token = getattr(self, 'ZENODO_ACCESS_TOKEN', None) or os.getenv('FAKENODO_TOKEN') or os.getenv('ZENODO_ACCESS_TOKEN')
+        token = (
+            getattr(self, "ZENODO_ACCESS_TOKEN", None)
+            or os.getenv("FAKENODO_TOKEN")
+            or os.getenv("ZENODO_ACCESS_TOKEN")
+        )
         self.params = {"access_token": token} if token else {}
 
     def test_connection(self) -> bool:
@@ -172,7 +175,6 @@ class ZenodoService(BaseService):
             "license": "CC-BY-4.0",
         }
 
-        
         data = {"metadata": metadata}
 
         logger.info(f"Zenodo deposition metadata...{dataset.ds_meta_data.publication_type.value}")
@@ -211,6 +213,32 @@ class ZenodoService(BaseService):
             raise Exception(error_message)
         return response.json()
 
+    def _compute_next_doi(self) -> str:
+        """Compute the next Zenodo-like DOI based on persisted PixelHub data.
+        Pattern: 10.5281/zenodo.<numeric>
+        """
+        try:
+            # Import here to avoid circulars
+            import re
+
+            from app.modules.dataset.models import DSMetaData
+
+            # Fetch all existing DOIs (could be optimized with a SQL MAX on numeric substring if available)
+            existing = []
+            for md in DSMetaData.query.with_entities(DSMetaData.dataset_doi).all():
+                doi = md[0]
+                if not doi:
+                    continue
+                m = re.search(r"^10\.5281/zenodo\.(\d+)$", doi)
+                if m:
+                    existing.append(int(m.group(1)))
+            next_suffix = (max(existing) + 1) if existing else 1000001
+            return f"10.5281/zenodo.{next_suffix}"
+        except Exception as e:
+            # Safe fallback to a deterministic, readable format if the query fails
+            logger.warning(f"Falling back DOI computation due to error: {e}")
+            return f"10.5281/zenodo.1000001"
+
     def publish_deposition(self, deposition_id: int) -> dict:
         """
         Publish a deposition in Zenodo.
@@ -222,7 +250,12 @@ class ZenodoService(BaseService):
             dict: The response in JSON format with the details of the published deposition.
         """
         publish_url = f"{self.ZENODO_API_URL}/{deposition_id}/publish"
-        response = requests.post(publish_url, params=self.params, headers=self.headers)
+
+        # Always compute and provide the DOI so fakenodo stays consistent across restarts
+        next_doi = self._compute_next_doi()
+        payload = {"doi": next_doi}
+
+        response = requests.post(publish_url, params=self.params, headers=self.headers, json=payload)
         if response.status_code not in (200, 202):
             raise Exception(f"Failed to publish deposition. Status: {response.status_code}. Body: {response.text}")
         return response.json()

@@ -51,8 +51,14 @@ def get_one(dep_id):
 
 @depositions_bp.route('/<int:dep_id>/publish', methods=['POST'])
 def publish(dep_id):
-    """POST /depositions/1/publish - Publica y genera DOI"""
-    dep = DepositionService.publicar_deposition(dep_id)
+    """POST /depositions/1/publish - Publica y genera DOI
+    Permite que el cliente suministre un DOI opcional usando JSON {"doi": "10.5281/zenodo.<n>"}.
+    Si no se proporciona, se usa la lógica por defecto del servidor.
+    """
+    payload = request.get_json(silent=True) or {}
+    provided_doi = payload.get('doi')
+
+    dep = DepositionService.publicar_deposition(dep_id, provided_doi=provided_doi)
     if not dep:
         return jsonify({'error': 'Not found'}), 404
     return jsonify(dep.to_dict()), 200

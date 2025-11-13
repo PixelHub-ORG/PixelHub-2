@@ -1,18 +1,9 @@
-from flask import Flask
-from fakenodo.app.routes import api_bp
+import os
+from fakenodo import create_app
 
-
-# Crear la app Flask
-app = Flask(__name__)
-
-# Registrar el blueprint principal
-app.register_blueprint(api_bp, url_prefix='/api')
-
-# Health check
-@app.route('/health', methods=['GET'])
-def health():
-    return {'status': 'ok'}, 200
+app = create_app()
 
 if __name__ == '__main__':
-    print("Iniciando Fakenodo en http://localhost:5001")
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    port = int(os.environ.get('PORT', 5001))
+    print(f"Iniciando Fakenodo en http://0.0.0.0:{port}")
+    app.run(debug=False, host='0.0.0.0', port=port)

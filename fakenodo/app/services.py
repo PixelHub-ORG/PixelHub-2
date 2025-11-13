@@ -68,17 +68,33 @@ class DepositionService:
         return list(cls._depositions.values())
     
     @classmethod
-    def publicar_deposition(cls, deposition_id: int) -> Optional[Deposition]:
-        """Publica un deposition y genera DOI"""
+    def publicar_deposition(cls, deposition_id: int, provided_doi: Optional[str] = None) -> Optional[Deposition]:
+        """Publica un deposition y genera DOI.
+        Si provided_doi está presente, se usa directamente. En caso contrario,
+        se genera un DOI por defecto.
+        """
         cls._initialize()
-        
+
         dep = cls._depositions.get(deposition_id)
         if not dep:
             return None
-        
+
         if not dep.doi:
-            dep.doi = f"10.5281/zenodo.{1000000 + deposition_id}"
-        
+            if provided_doi:
+                dep.doi = provided_doi
+            else:
+                # Fallback: generate a numeric-looking DOI suffix to mimic Zenodo style.
+                # We base it on the highest existing numeric suffix in memory.
+                import re
+                existing = []
+                for d in cls._depositions.values():
+                    if d.doi:
+                        m = re.search(r"zenodo\.(\d+)$", d.doi)
+                        if m:
+                            existing.append(int(m.group(1)))
+                next_suffix = (max(existing) + 1) if existing else 1000001
+                dep.doi = f"10.5281/zenodo.{next_suffix}"
+
         dep.state = "published"
         return dep
     
