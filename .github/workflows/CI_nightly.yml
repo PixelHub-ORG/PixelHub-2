@@ -2,7 +2,7 @@ name: Nightly
 
 on:
   schedule:
-    - cron: "*/10 * * * *"   # Ejecutar cada 10 minutos (solo para pruebas)
+    - cron: "*/10 * * * *"   # Ejecutar cada 10 minutos (para pruebas)
   workflow_dispatch:
 
 concurrency:
@@ -79,6 +79,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [quality, security]
 
+    # Solo se ejecuta si quality o security han fallado
     if: ${{ needs.quality.result == 'failure' || needs.security.result == 'failure' }}
 
     permissions:
@@ -86,35 +87,29 @@ jobs:
       contents: read
 
     steps:
-
       - name: Build failure summary
-        id: summary
         run: |
-          echo "quality_result=${{ needs.quality.result }}" >> $GITHUB_OUTPUT
-          echo "security_result=${{ needs.security.result }}" >> $GITHUB_OUTPUT
-
           FAIL_MSG=""
 
           if [ "${{ needs.quality.result }}" = "failure" ]; then
-            FAIL_MSG="${FAIL_MSG}- *Quality (Lint/Tests) ha fallado*\n"
+            FAIL_MSG="${FAIL_MSG}- Quality (Lint/Tests) ha fallado. "
           fi
 
           if [ "${{ needs.security.result }}" = "failure" ]; then
-            FAIL_MSG="${FAIL_MSG}- *Security Scan ha fallado*\n"
+            FAIL_MSG="${FAIL_MSG}- Security Scan ha fallado. "
           fi
 
-          echo "fail_message<<EOF" >> $GITHUB_OUTPUT
-          echo -e "$FAIL_MSG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          echo "FAIL_MESSAGE=$FAIL_MSG" >> $GITHUB_ENV
 
       - name: Create Issue
         uses: actions/github-script@v7
+        env:
+          FAIL_MESSAGE: ${{ env.FAIL_MESSAGE }}
         with:
           script: |
-            const failMsg = `${{ steps.summary.outputs.fail_message }}`;
-
+            const failMsg = process.env.FAIL_MESSAGE || 'Revisa los logs del workflow.';
             const body = `
-### Nightly FAILED
+### 🔴 Nightly FAILED
 
 **Fecha:** ${new Date().toISOString()}
 
@@ -148,18 +143,15 @@ Revisa los logs para más detalles.
           subject: "❌ Nightly FAILED en ${{ github.repository }}"
 
           to: |
-            correo1@example.com
-            correo2@example.com
-            correo3@example.com
+            loufouela@alum.us.es
 
           body: |
             ❌ Nightly FAILED en ${{ github.repository }}
 
             Problemas detectados:
-
-            ${{ steps.summary.outputs.fail_message }}
+            ${{ env.FAIL_MESSAGE }}
 
             Enlace al run:
             ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-            Revisa logs para más información.
+            Revisa los logs para más información.
