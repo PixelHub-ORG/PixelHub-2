@@ -1,12 +1,25 @@
----
+name: Test Coverage
+
+on:
+  push:
+    branches:
+      - "**"     # cualquier rama
+  pull_request:
+    branches:
+      - "**"     # cualquier PR
+
 concurrency:
-  cancel-in-progress: true
   group: coverage-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   coverage:
     name: Test Coverage
     runs-on: ubuntu-latest
-    
+
     env:
       FLASK_ENV: testing
       MARIADB_DATABASE: pixelhubdb_test
@@ -16,63 +29,57 @@ jobs:
       MARIADB_ROOT_PASSWORD: pixelhubdb_root_password
       MARIADB_TEST_DATABASE: pixelhubdb_test
       MARIADB_USER: pixelhubdb_user
+
     services:
-      # MariaDB service container for integration tests
       mariadb:
-          # Global environment variables shared across services and steps
-    env:
+        image: mariadb:12.0.2
+        env:
           MARIADB_DATABASE: ${{ env.MARIADB_DATABASE }}
           MARIADB_PASSWORD: ${{ env.MARIADB_PASSWORD }}
           MARIADB_ROOT_PASSWORD: ${{ env.MARIADB_ROOT_PASSWORD }}
           MARIADB_USER: ${{ env.MARIADB_USER }}
-        image: mariadb:12.0.2
+        ports:
+          - "3306:3306"
         options: >-
           --health-cmd="mariadb-admin ping -u root -p$MARIADB_ROOT_PASSWORD"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=3
 
-        ports:
-          - '3306:3306'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
+
       - name: Cache pip
         uses: actions/cache@v3
         with:
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
           path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
           pip install pytest pytest-cov
 
-      - env:
+      - name: Run tests with coverage (ignoring Selenium)
+        env:
           PYTHONUNBUFFERED: 1
-        name: Run tests with coverage (ignoring Selenium)
         run: |
           pytest \
             --cov=app \
             --cov-report=xml \
             --cov-report=term-missing \
             --cov-fail-under=80 \
-            --ignore-glob='*selenium*' \
+            --ignore-glob="**/*selenium*" \
+            --ignore-glob="**/test_selenium.py"
+
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
           name: coverage-xml
           path: coverage.xml
-name: Test Coverage
-'on':
-  pull_request:
-    branches:
-      - '**'
-  push:
-    branches:
-      - '**'
-permissions:
-  contents: read
