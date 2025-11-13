@@ -21,16 +21,12 @@ on:
       - completed # Triggers when a workflow is finished (success or failure)
 
   # --- TEMPORARY TRIGGER FOR TESTING ---
-  # This allows you to test the workflow by pushing to your branch.
-  # REMOVE THIS BLOCK before merging to your default branch (main/trunk).
   push:
     branches:
       - fix/upgrade-ci-cd
   # --- END OF TEMPORARY TRIGGER ---
 
 
-# This prevents race conditions.
-# It ensures only one "notifier" runs at a time for the same commit.
 concurrency:
   group: completion-notify-${{ github.event.workflow_run.head_sha || github.sha }}
   cancel-in-progress: false
@@ -65,6 +61,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
         run: |
+          # Get the name of this *current* workflow
+          THIS_WORKFLOW_NAME="${{ github.workflow }}"
+
           # This script behaves differently based on the trigger
           if [ "${{ github.event_name }}" = "push" ]; then
             # --- PUSH TEST LOGIC: Poll until complete ---
@@ -75,8 +74,9 @@ jobs:
             while true; do
               runs=$(gh run list --commit $CTX_SHA --repo $REPO --json status,conclusion,name,url)
               
-              # Check if any runs are NOT completed
-              if echo "$runs" | jq -e '.[] | select(.status != "completed")' > /dev/null; then
+              # *** FIX ***
+              # Check if any runs are NOT completed, IGNORING this workflow itself
+              if echo "$runs" | jq -e ".[] | select(.name != \"$THIS_WORKFLOW_NAME\" and .status != \"completed\")" > /dev/null; then
                 echo "Workflows are still running. Waiting 30 seconds..."
                 
                 # Check for timeout
@@ -91,8 +91,8 @@ jobs:
                 
                 sleep 30
               else
-                # All runs are completed
-                echo "All workflows for $CTX_SHA are completed."
+                # All *other* runs are completed
+                echo "All other workflows for $CTX_SHA are completed."
                 echo "all_complete=true" >> $GITHUB_ENV
                 break # Exit the loop
               fi
@@ -106,32 +106,42 @@ jobs:
             
             runs=$(gh run list --commit $CTX_SHA --repo $REPO --json status,conclusion,name,url)
             
-            if echo "$runs" | jq -e '.[] | select(.status != "completed")' > /dev/null; then
+            # *** FIX ***
+            # Check if any runs are NOT completed, IGNORING this workflow itself
+            if echo "$runs" | jq -e ".[] | select(.name != \"$THIS_WORKFLOW_NAME\" and .status != \"completed\")" > /dev/null; then
               echo "Workflows are still running. This is not the final workflow. Exiting."
               echo "all_complete=false" >> $GITHUB_ENV
               exit 0
             fi
             
-            echo "All workflows for $CTX_SHA are completed."
+            echo "All other workflows for $CTX_SHA are completed."
             echo "all_complete=true" >> $GITHUB_ENV
             # --- End of WORKFLOW_RUN LOGIC ---
           fi
 
           # --- This part is now common for both triggers ---
           echo "Checking for failures..."
-          if echo "$runs" | jq -e '.[] | select(.conclusion != "success")' > /dev/null; then
-            echo "One or more workflows failed."
+          
+          # *** FIX ***
+          # When checking for failure, we check ALL runs, including this one (in case it failed)
+          # No, wait. We should only check *other* runs for the summary.
+          
+          # Re-fetch the runs, or just use the 'runs' variable
+          
+          # Check for failure among *other* workflows
+          if echo "$runs" | jq -e ".[] | select(.name != \"$THIS_WORKFLOW_NAME\" and .conclusion != \"success\")" > /dev/null; then
+            echo "One or more *other* workflows failed."
             echo "final_status=failure" >> $GITHUB_ENV
             echo "final_color=danger" >> $GITHUB_ENV
             echo "final_title=Failed ❌" >> $GITHUB_ENV
           else
-            echo "All workflows succeeded."
+            echo "All other workflows succeeded."
             echo "final_status=success" >> $GITHUB_ENV
             echo "final_color=good" >> $GITHUB_ENV
             echo "final_title=Succeeded ✅" >> $GITHUB_ENV
           fi
 
-          # Build a formatted list of all workflows and their results
+          # Build a formatted list of ALL workflows (including this one)
           summary=$(echo "$runs" | jq -r '
             map("\(.conclusion | sub("success"; "✅") | sub("failure"; "❌") | sub("cancelled"; "⏹️") | sub("skipped"; "➖")) [\(.name)](\(.url))") |
             join("\n")
