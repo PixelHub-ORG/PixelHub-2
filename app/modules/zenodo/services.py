@@ -25,23 +25,25 @@ class ZenodoService(BaseService):
         ZENODO_API_URL = ""
 
         if FLASK_ENV == "development":
-            ZENODO_API_URL = os.getenv("ZENODO_API_URL", "https://sandbox.zenodo.org/api/deposit/depositions")
+            ZENODO_API_URL = os.getenv("FAKENODO_URL", "http://localhost:5001/api")
         elif FLASK_ENV == "production":
-            ZENODO_API_URL = os.getenv("ZENODO_API_URL", "https://zenodo.org/api/deposit/depositions")
+            ZENODO_API_URL = os.getenv("FAKENODO_URL", "http://localhost:5001/api")
         else:
-            ZENODO_API_URL = os.getenv("ZENODO_API_URL", "https://sandbox.zenodo.org/api/deposit/depositions")
+            ZENODO_API_URL = os.getenv("FAKENODO_URL", "http://localhost:5001/api")
 
         return ZENODO_API_URL
 
-    def get_zenodo_access_token(self):
-        return os.getenv("ZENODO_ACCESS_TOKEN")
 
     def __init__(self):
         super().__init__(ZenodoRepository())
-        self.ZENODO_ACCESS_TOKEN = self.get_zenodo_access_token()
         self.ZENODO_API_URL = self.get_zenodo_url()
+        # Ensure we target the depositions collection
+        if not self.ZENODO_API_URL.rstrip('/').endswith('/depositions'):
+            self.ZENODO_API_URL = f"{self.ZENODO_API_URL.rstrip('/')}/depositions"
         self.headers = {"Content-Type": "application/json"}
-        self.params = {"access_token": self.ZENODO_ACCESS_TOKEN}
+        # Ensure params is always defined (e.g., access_token or empty)
+        token = getattr(self, 'ZENODO_ACCESS_TOKEN', None) or os.getenv('FAKENODO_TOKEN') or os.getenv('ZENODO_ACCESS_TOKEN')
+        self.params = {"access_token": token} if token else {}
 
     def test_connection(self) -> bool:
         """
@@ -88,7 +90,7 @@ class ZenodoService(BaseService):
             return jsonify(
                 {
                     "success": False,
-                    "messages": f"Failed to create test deposition on Zenodo. Response code: {response.status_code}",
+                    "messages": f"Failed to create test deposition on Zenodo. Response code: {response.status_code}. Body: {response.text}",
                 }
             )
 
@@ -129,7 +131,7 @@ class ZenodoService(BaseService):
         """
         response = requests.get(self.ZENODO_API_URL, params=self.params, headers=self.headers)
         if response.status_code != 200:
-            raise Exception("Failed to get depositions")
+            raise Exception(f"Failed to get depositions. Status: {response.status_code}. Body: {response.text}")
         return response.json()
 
     def create_new_deposition(self, dataset: DataSet) -> dict:
@@ -170,11 +172,17 @@ class ZenodoService(BaseService):
             "license": "CC-BY-4.0",
         }
 
+        
         data = {"metadata": metadata}
 
+        logger.info(f"Zenodo deposition metadata...{dataset.ds_meta_data.publication_type.value}")
         response = requests.post(self.ZENODO_API_URL, params=self.params, json=data, headers=self.headers)
         if response.status_code != 201:
-            error_message = f"Failed to create deposition. Error details: {response.json()}"
+            try:
+                err = response.json()
+            except ValueError:
+                err = response.text
+            error_message = f"Failed to create deposition. Status: {response.status_code}. Error details: {err}"
             raise Exception(error_message)
         return response.json()
 
@@ -213,10 +221,10 @@ class ZenodoService(BaseService):
         Returns:
             dict: The response in JSON format with the details of the published deposition.
         """
-        publish_url = f"{self.ZENODO_API_URL}/{deposition_id}/actions/publish"
+        publish_url = f"{self.ZENODO_API_URL}/{deposition_id}/publish"
         response = requests.post(publish_url, params=self.params, headers=self.headers)
-        if response.status_code != 202:
-            raise Exception("Failed to publish deposition")
+        if response.status_code not in (200, 202):
+            raise Exception(f"Failed to publish deposition. Status: {response.status_code}. Body: {response.text}")
         return response.json()
 
     def get_deposition(self, deposition_id: int) -> dict:
@@ -232,7 +240,7 @@ class ZenodoService(BaseService):
         deposition_url = f"{self.ZENODO_API_URL}/{deposition_id}"
         response = requests.get(deposition_url, params=self.params, headers=self.headers)
         if response.status_code != 200:
-            raise Exception("Failed to get deposition")
+            raise Exception(f"Failed to get deposition. Status: {response.status_code}. Body: {response.text}")
         return response.json()
 
     def get_doi(self, deposition_id: int) -> str:
