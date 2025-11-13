@@ -1,8 +1,3 @@
-# ----------------------------------------------------------------------------
-# Workflow Completion Notifier (Discord version)
-# Sends a Discord embed after ALL workflows for a commit finish.
-# ----------------------------------------------------------------------------
-
 name: Workflow Completion Notifier
 
 on:
@@ -17,6 +12,7 @@ on:
       - "Pytest"
     types:
       - completed
+  workflow_dispatch:
 
 concurrency:
   group: completion-notify-${{ github.event.workflow_run.head_sha }}
@@ -29,9 +25,6 @@ jobs:
       actions: read
 
     steps:
-      # -----------------------
-      # Step 1: Context
-      # -----------------------
       - name: Set Context Variables
         run: |
           echo "CTX_SHA=${{ github.event.workflow_run.head_sha }}" >> $GITHUB_ENV
@@ -39,9 +32,6 @@ jobs:
           echo "CTX_ACTOR=${{ github.event.workflow_run.actor.login }}" >> $GITHUB_ENV
           echo "CTX_COMMIT_URL=${{ github.event.workflow_run.head_commit.url }}" >> $GITHUB_ENV
 
-      # -----------------------
-      # Step 2: Check workflows
-      # -----------------------
       - name: Check workflow statuses
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -52,7 +42,6 @@ jobs:
 
           runs=$(gh run list --commit "$CTX_SHA" -R "$REPO" --json status,conclusion,name,url)
 
-          # Detect incomplete workflows
           if echo "$runs" | jq -e ".[] | select(.name != \"$THIS_WORKFLOW_NAME\" and .status != \"completed\")" > /dev/null; then
             echo "all_complete=false" >> $GITHUB_ENV
             exit 0
@@ -60,18 +49,16 @@ jobs:
 
           echo "all_complete=true" >> $GITHUB_ENV
 
-          # Detect failure
           if echo "$runs" | jq -e ".[] | select(.name != \"$THIS_WORKFLOW_NAME\" and .conclusion != \"success\")" > /dev/null; then
             echo "final_status=failure" >> $GITHUB_ENV
             echo "final_title=❌ Failed" >> $GITHUB_ENV
-            echo "final_color=15548997" >> $GITHUB_ENV   # Rojo (Discord embed integer)
+            echo "final_color=15548997" >> $GITHUB_ENV
           else
             echo "final_status=success" >> $GITHUB_ENV
             echo "final_title=✅ Success" >> $GITHUB_ENV
-            echo "final_color=5763719" >> $GITHUB_ENV    # Verde suave
+            echo "final_color=5763719" >> $GITHUB_ENV
           fi
 
-          # Summary formatted for Discord
           summary=$(echo "$runs" | jq -r '
             map(
               (if .conclusion=="success" then "✅"
@@ -89,15 +76,11 @@ jobs:
             echo "EOF"
           } >> $GITHUB_ENV
 
-      # -----------------------
-      # Step 3: Discord webhook
-      # -----------------------
       - name: Send Discord notification
         if: env.all_complete == 'true'
         env:
           DISCORD_WEBHOOK: ${{ secrets.NOTIFY_WEBHOOK_URL }}
         run: |
-          # Build embed JSON
           payload=$(jq -n \
             --arg title "Workflows for ${CTX_BRANCH} ${final_title}" \
             --arg desc "**Commit:** \`${CTX_SHA}\`\n**Author:** \`${CTX_ACTOR}\`\n[View Commit](${CTX_COMMIT_URL})" \
@@ -120,7 +103,6 @@ jobs:
             }'
           )
 
-          # Send the message
           curl -X POST \
             -H "Content-Type: application/json" \
             -d "$payload" \
