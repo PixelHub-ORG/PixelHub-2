@@ -20,13 +20,6 @@ on:
     types:
       - completed # Triggers when a workflow is finished (success or failure)
 
-  # --- TEMPORARY TRIGGER FOR TESTING ---
-  push:
-    branches:
-      - fix/upgrade-ci-cd
-  # --- END OF TEMPORARY TRIGGER ---
-
-
 concurrency:
   group: completion-notify-${{ github.event.workflow_run.head_sha || github.sha }}
   cancel-in-progress: false
