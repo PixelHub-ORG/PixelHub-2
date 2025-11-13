@@ -1,4 +1,4 @@
-name: CI - Coverage
+name: Test Coverage
 
 on:
   push:
@@ -49,10 +49,7 @@ jobs:
             --cov-report=xml \
             --cov-report=term-missing \
             --cov-fail-under=80 \
-            -k "not selenium" \
-            --ignore=tests/selenium \
-            --ignore=selenium
-
+            --ignore-glob='*selenium*' \
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
