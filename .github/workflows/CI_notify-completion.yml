@@ -1,14 +1,12 @@
 # ----------------------------------------------------------------------------
-# Workflow Completion Notifier
-# Sends a single notification (e.g., to Discord) after all workflows
-# for a specific commit have finished.
+# Workflow Completion Notifier (Discord version)
+# Sends a Discord embed after ALL workflows for a commit finish.
 # ----------------------------------------------------------------------------
 
 name: Workflow Completion Notifier
 
 on:
   workflow_run:
-    # 1. This is now the *only* trigger
     workflows:
       - "Publish image in Docker Hub"
       - "Deploy on Render"
@@ -20,97 +18,110 @@ on:
     types:
       - completed
 
-# --- THIS IS THE FIX ---
-# This ensures only one instance runs at a time for a commit.
-# 'cancel-in-progress: true' means the *newest* trigger always wins.
 concurrency:
   group: completion-notify-${{ github.event.workflow_run.head_sha }}
   cancel-in-progress: true
-# --- END OF FIX ---
 
 jobs:
   check-and-notify:
     runs-on: ubuntu-latest
-    
-    # Grant permission for this job to read other workflow statuses
     permissions:
       actions: read
 
     steps:
-      # Step 1: Set Context Variables (Simplified)
-      # All the 'if/else' logic is removed because we only run on 'workflow_run'
-      - name: Set Context-Aware Variables
-        id: vars
+      # -----------------------
+      # Step 1: Context
+      # -----------------------
+      - name: Set Context Variables
         run: |
-          echo "This is a 'workflow_run' event."
           echo "CTX_SHA=${{ github.event.workflow_run.head_sha }}" >> $GITHUB_ENV
           echo "CTX_BRANCH=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_ENV
           echo "CTX_ACTOR=${{ github.event.workflow_run.actor.login }}" >> $GITHUB_ENV
           echo "CTX_COMMIT_URL=${{ github.event.workflow_run.head_commit.url }}" >> $GITHUB_ENV
 
-      # Step 2: Check workflow statuses (Simplified)
-      # All the 'push' polling logic is removed
+      # -----------------------
+      # Step 2: Check workflows
+      # -----------------------
       - name: Check workflow statuses
-        id: check_runs
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
         run: |
           THIS_WORKFLOW_NAME="${{ github.workflow }}"
-          
-          echo "WORKFLOW_RUN trigger: Checking status once..."
-          # Give the API a grace period for all 'completed' events to settle
-          sleep 15 
-          
-          runs=$(gh run list --commit $CTX_SHA -R $REPO --json status,conclusion,name,url)
-          
-          # Check if any *other* runs are NOT completed
+          sleep 15
+
+          runs=$(gh run list --commit "$CTX_SHA" -R "$REPO" --json status,conclusion,name,url)
+
+          # Detect incomplete workflows
           if echo "$runs" | jq -e ".[] | select(.name != \"$THIS_WORKFLOW_NAME\" and .status != \"completed\")" > /dev/null; then
-            echo "Workflows are still running. This is not the final workflow. Exiting."
             echo "all_complete=false" >> $GITHUB_ENV
             exit 0
           fi
-          
-          echo "All other workflows for $CTX_SHA are completed."
+
           echo "all_complete=true" >> $GITHUB_ENV
 
-          # --- This part is common ---
-          echo "Checking for failures..."
-          
-          # Check for failure among *other* workflows
+          # Detect failure
           if echo "$runs" | jq -e ".[] | select(.name != \"$THIS_WORKFLOW_NAME\" and .conclusion != \"success\")" > /dev/null; then
-            echo "One or more *other* workflows failed."
             echo "final_status=failure" >> $GITHUB_ENV
-            echo "final_color=danger" >> $GITHUB_ENV
-            echo "final_title=Failed ❌" >> $GITHUB_ENV
+            echo "final_title=❌ Failed" >> $GITHUB_ENV
+            echo "final_color=15548997" >> $GITHUB_ENV   # Rojo (Discord embed integer)
           else
-            echo "All other workflows succeeded."
             echo "final_status=success" >> $GITHUB_ENV
-            echo "final_color=good" >> $GITHUB_ENV
-            echo "final_title=Succeeded ✅" >> $GITHUB_ENV
+            echo "final_title=✅ Success" >> $GITHUB_ENV
+            echo "final_color=5763719" >> $GITHUB_ENV    # Verde suave
           fi
 
-          # The 'summary=$(...)' command must be on a single line
-          summary=$(echo "$runs" | jq -r 'map("\(.conclusion | sub("success"; "✅") | sub("failure"; "❌") | sub("cancelled"; "⏹️") | sub("skipped"; "➖")) [\(.name)](\(.url))") | join("\n")')
-          
-          echo "summary<<EOF" >> $GITHUB_ENV
-          echo "$summary" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          # Summary formatted for Discord
+          summary=$(echo "$runs" | jq -r '
+            map(
+              (if .conclusion=="success" then "✅"
+               elif .conclusion=="failure" then "❌"
+               elif .conclusion=="cancelled" then "⏹️"
+               elif .conclusion=="skipped" then "➖"
+               else "❔" end)
+               + " **" + .name + "** → <" + .url + ">"
+            ) | join("\n")
+          ')
 
-      # Step 3: Send notification using the context-aware variables
-      - name: Send notification to Slack/Discord/Teams
+          {
+            echo "summary<<EOF"
+            echo "$summary"
+            echo "EOF"
+          } >> $GITHUB_ENV
+
+      # -----------------------
+      # Step 3: Discord webhook
+      # -----------------------
+      - name: Send Discord notification
         if: env.all_complete == 'true'
-        uses: rtCamp/action-slack-notify@v2
         env:
-          SLACK_WEBHOOK: ${{ secrets.NOTIFY_WEBHOOK_URL }}
-          SLACK_COLOR: ${{ env.final_color }}
-          SLACK_TITLE: "Workflows for ${{ env.CTX_BRANCH }} ${{ env.final_title }}"
-          SLACK_MESSAGE: |
-            All workflows for commit `${{ env.CTX_SHA }}` have completed.
-            
-            *Branch:* `${{ env.CTX_BRANCH }}`
-            *Triggered by:* `${{ env.CTX_ACTOR }}`
-            *View Commit:* <${{ env.CTX_COMMIT_URL }}|Link>
-            
-            *Run results:*
-            ${{ env.summary }}
+          DISCORD_WEBHOOK: ${{ secrets.NOTIFY_WEBHOOK_URL }}
+        run: |
+          # Build embed JSON
+          payload=$(jq -n \
+            --arg title "Workflows for ${CTX_BRANCH} ${final_title}" \
+            --arg desc "**Commit:** \`${CTX_SHA}\`\n**Author:** \`${CTX_ACTOR}\`\n[View Commit](${CTX_COMMIT_URL})" \
+            --arg summary "$summary" \
+            --argjson color ${final_color} \
+            '{
+              embeds: [
+                {
+                  title: $title,
+                  description: $desc,
+                  color: $color,
+                  fields: [
+                    {
+                      name: "Workflow Results",
+                      value: $summary
+                    }
+                  ]
+                }
+              ]
+            }'
+          )
+
+          # Send the message
+          curl -X POST \
+            -H "Content-Type: application/json" \
+            -d "$payload" \
+            "$DISCORD_WEBHOOK"
