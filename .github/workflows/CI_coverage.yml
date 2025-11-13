@@ -50,7 +50,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # necesario para ver diffs bien
+          fetch-depth: 0   # necesario para ver bien los cambios
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -68,62 +68,59 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-cov
 
-      # 1) Obtener ficheros cambiados en este push/PR
       - name: Get changed files
         id: changed
         uses: tj-actions/changed-files@v45
 
-      # 2) Decidir si merece la pena correr cobertura
-      - name: Decide whether to run coverage
-        id: coverage_filter
+      - name: Compute modules to test
+        id: modules
         run: |
-          # Módulos que SÍ nos interesan (prefijo de ruta)
-          INCLUDED_PREFIX="app/modules"
-
-          # Módulos que NO queremos cubrir nunca (puedes añadir más separados por espacio)
-          EXCLUDED_PREFIXES="app/modules/selenium_experimental"
-
-          RUN_COVERAGE="false"
-
-          echo "Ficheros cambiados:"
-          echo "${{ steps.changed.outputs.all_changed_files }}"
-
+          MODULE_DIRS=""
+          # Recorremos todos los ficheros cambiados
           for file in ${{ steps.changed.outputs.all_changed_files }}; do
             case "$file" in
-              ${INCLUDED_PREFIX}/*)
-                # Comprobamos si está en la lista de excluidos
-                SKIP="false"
-                for ex in $EXCLUDED_PREFIXES; do
-                  case "$file" in
-                    ${ex}/*)
-                      SKIP="true"
-                      ;;
-                  esac
-                done
-
-                if [ "$SKIP" = "false" ]; then
-                  RUN_COVERAGE="true"
-                fi
+              app/modules/*)
+                dir=$(echo "$file" | cut -d'/' -f1-3)   # app/modules/<modulo>
+                MODULE_DIRS="$MODULE_DIRS $dir"
                 ;;
             esac
           done
 
-          echo "run_coverage=$RUN_COVERAGE" >> $GITHUB_OUTPUT
-          echo "Decisión final run_coverage=$RUN_COVERAGE"
+          # Normalizar: quitar duplicados
+          MODULE_DIRS=$(echo "$MODULE_DIRS" | tr ' ' '\n' | sort -u | tr '\n' ' ')
 
-      - name: Skipping coverage (no relevant changes)
-        if: steps.coverage_filter.outputs.run_coverage != 'true'
+          if [ -z "$MODULE_DIRS" ]; then
+            echo "NO_MODULES=true" >> $GITHUB_ENV
+            echo "No se han modificado módulos bajo app/modules. No se correrá coverage."
+          else
+            echo "NO_MODULES=false" >> $GITHUB_ENV
+            echo "MODULE_DIRS=$MODULE_DIRS" >> $GITHUB_ENV
+            echo "Módulos modificados: $MODULE_DIRS"
+
+            # Construimos lista de paquetes Python para --cov
+            COV_PKGS=""
+            for dir in $MODULE_DIRS; do
+              pkg=$(echo "$dir" | tr '/' '.')
+              COV_PKGS="$COV_PKGS --cov=$pkg"
+            done
+            echo "COV_PKGS=$COV_PKGS" >> $GITHUB_ENV
+          fi
+
+      - name: Skip coverage (no relevant modules changed)
+        if: env.NO_MODULES == 'true'
         run: |
-          echo "No se han modificado módulos relevantes. No se ejecuta coverage."
+          echo "Saltando ejecución de coverage porque no se han modificado módulos relevantes."
 
-      - name: Run tests with coverage (ignoring Selenium)
-        if: steps.coverage_filter.outputs.run_coverage == 'true'
+      - name: Run tests with coverage (only changed modules, ignoring Selenium)
+        if: env.NO_MODULES != 'true'
         env:
           PYTHONUNBUFFERED: 1
         run: |
-          echo "Ejecutando coverage porque hay módulos relevantes cambiados."
-          pytest app/modules \
-            --cov=app \
+          echo "Ejecutando pytest sobre los módulos modificados: $MODULE_DIRS"
+          echo "Paquetes de cobertura: $COV_PKGS"
+
+          pytest $MODULE_DIRS \
+            $COV_PKGS \
             --cov-report=xml \
             --cov-report=term-missing \
             --cov-fail-under=80 \
@@ -131,7 +128,7 @@ jobs:
             --ignore-glob="**/test_selenium.py"
 
       - name: Upload coverage report
-        if: steps.coverage_filter.outputs.run_coverage == 'true'
+        if: env.NO_MODULES != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: coverage-xml
