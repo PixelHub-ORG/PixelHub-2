@@ -1,11 +1,14 @@
-# .github/workflows/CI_notify-completion.yml
-
-# This is a test workflow that triggers on the completion of other workflows.
+# ----------------------------------------------------------------------------
+# Workflow Completion Notifier
+# Sends a single notification (e.g., to Discord) after all workflows
+# for a specific commit have finished.
+# ----------------------------------------------------------------------------
 
 name: Workflow Completion Notifier
 
 on:
   workflow_run:
+    # 1. This list MUST include ALL workflows you want to monitor
     workflows:
       - "Publish image in Docker Hub"
       - "Deploy on Render"
@@ -15,13 +18,21 @@ on:
       - "Python Lint"
       - "Pytest"
     types:
-      - completed
+      - completed # Triggers when a workflow is finished (success or failure)
+
+  # --- TEMPORARY TRIGGER FOR TESTING ---
+  # This allows you to test the workflow by pushing to your branch.
+  # REMOVE THIS BLOCK before merging to your default branch (main/trunk).
   push:
     branches:
-      - fix/upgrade-ci-cd # TEMPORARY trigger for testing
+      - fix/upgrade-ci-cd
+  # --- END OF TEMPORARY TRIGGER ---
 
+
+# This prevents race conditions.
+# It ensures only one "notifier" runs at a time for the same commit.
 concurrency:
-  group: completion-notify-${{ github.event.workflow_run.head_sha }}
+  group: completion-notify-${{ github.event.workflow_run.head_sha || github.sha }}
   cancel-in-progress: false
 
 jobs:
@@ -47,35 +58,67 @@ jobs:
             echo "CTX_COMMIT_URL=${{ github.event.workflow_run.head_commit.url }}" >> $GITHUB_ENV
           fi
 
-      # Step 2: Check statuses using the correct variables and command
+      # Step 2: Check statuses (with polling logic for 'push' tests)
       - name: Check workflow statuses
         id: check_runs
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
         run: |
-          # Give the API a 10-second grace period to settle
-          sleep 10
-          
-          echo "Checking statuses for SHA: $CTX_SHA on branch: $CTX_BRANCH"
+          # This script behaves differently based on the trigger
+          if [ "${{ github.event_name }}" = "push" ]; then
+            # --- PUSH TEST LOGIC: Poll until complete ---
+            echo "PUSH trigger: Polling for completion (max 10 minutes)..."
+            TIMEOUT_SECONDS=600 # 10 minutes
+            START_TIME=$(date +%s)
+            
+            while true; do
+              runs=$(gh run list --commit $CTX_SHA --repo $REPO --json status,conclusion,name,url)
+              
+              # Check if any runs are NOT completed
+              if echo "$runs" | jq -e '.[] | select(.status != "completed")' > /dev/null; then
+                echo "Workflows are still running. Waiting 30 seconds..."
+                
+                # Check for timeout
+                CURRENT_TIME=$(date +%s)
+                ELAPSED=$(($CURRENT_TIME - $START_TIME))
+                
+                if [ $ELAPSED -gt $TIMEOUT_SECONDS ]; then
+                  echo "Polling timed out after $TIMEOUT_SECONDS seconds. Exiting."
+                  echo "all_complete=false" >> $GITHUB_ENV
+                  exit 0
+                fi
+                
+                sleep 30
+              else
+                # All runs are completed
+                echo "All workflows for $CTX_SHA are completed."
+                echo "all_complete=true" >> $GITHUB_ENV
+                break # Exit the loop
+              fi
+            done
+            # --- End of PUSH TEST LOGIC ---
 
-          # *** FIX 1: Using 'url' instead of 'html_url' ***
-          runs=$(gh run list --commit $CTX_SHA --repo $REPO --json status,conclusion,name,url)
-          
-          echo "Found runs:"
-          echo "$runs" | jq .
-
-          # Check if any are still in_progress or queued
-          if echo "$runs" | jq -e '.[] | select(.status != "completed")' > /dev/null; then
-            echo "Workflows are still running. This is not the final workflow. Exiting."
-            echo "all_complete=false" >> $GITHUB_ENV
-            exit 0
+          else
+            # --- WORKFLOW_RUN LOGIC: Check once (the real logic) ---
+            echo "WORKFLOW_RUN trigger: Checking status once..."
+            sleep 10 # Give the API a 10-second grace period to settle
+            
+            runs=$(gh run list --commit $CTX_SHA --repo $REPO --json status,conclusion,name,url)
+            
+            if echo "$runs" | jq -e '.[] | select(.status != "completed")' > /dev/null; then
+              echo "Workflows are still running. This is not the final workflow. Exiting."
+              echo "all_complete=false" >> $GITHUB_ENV
+              exit 0
+            fi
+            
+            echo "All workflows for $CTX_SHA are completed."
+            echo "all_complete=true" >> $GITHUB_ENV
+            # --- End of WORKFLOW_RUN LOGIC ---
           fi
 
-          echo "All workflows for $CTX_SHA are completed."
-          echo "all_complete=true" >> $GITHUB_ENV
-
-          # Now, check if any of the completed workflows failed
+          # --- This part is now common for both triggers ---
+          echo "Checking for failures..."
           if echo "$runs" | jq -e '.[] | select(.conclusion != "success")' > /dev/null; then
             echo "One or more workflows failed."
             echo "final_status=failure" >> $GITHUB_ENV
@@ -89,7 +132,6 @@ jobs:
           fi
 
           # Build a formatted list of all workflows and their results
-          # *** FIX 2: Using '.url' instead of '.html_url' ***
           summary=$(echo "$runs" | jq -r '
             map("\(.conclusion | sub("success"; "✅") | sub("failure"; "❌") | sub("cancelled"; "⏹️") | sub("skipped"; "➖")) [\(.name)](\(.url))") |
             join("\n")
