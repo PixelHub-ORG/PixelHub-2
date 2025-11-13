@@ -20,7 +20,7 @@ on:
       - completed
   push:
     branches:
-      - "**"
+      - test/testing-new-ci 
 
 concurrency:
   group: completion-notify-${{ github.event.workflow_run.head_sha }}
