@@ -53,15 +53,14 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
-          # CTX_SHA and CTX_BRANCH are now available from the previous step
         run: |
           # Give the API a 10-second grace period to settle
           sleep 10
           
           echo "Checking statuses for SHA: $CTX_SHA on branch: $CTX_BRANCH"
 
-          # *** THIS IS THE FIX: --commit instead of --head-sha ***
-          runs=$(gh run list --commit $CTX_SHA --repo $REPO --json status,conclusion,name,html_url)
+          # *** FIX 1: Using 'url' instead of 'html_url' ***
+          runs=$(gh run list --commit $CTX_SHA --repo $REPO --json status,conclusion,name,url)
           
           echo "Found runs:"
           echo "$runs" | jq .
@@ -90,8 +89,9 @@ jobs:
           fi
 
           # Build a formatted list of all workflows and their results
+          # *** FIX 2: Using '.url' instead of '.html_url' ***
           summary=$(echo "$runs" | jq -r '
-            map("\(.conclusion | sub("success"; "✅") | sub("failure"; "❌") | sub("cancelled"; "⏹️") | sub("skipped"; "➖")) [\(.name)](\(.html_url))") |
+            map("\(.conclusion | sub("success"; "✅") | sub("failure"; "❌") | sub("cancelled"; "⏹️") | sub("skipped"; "➖")) [\(.name)](\(.url))") |
             join("\n")
           ')
           
@@ -106,7 +106,6 @@ jobs:
         env:
           SLACK_WEBHOOK: ${{ secrets.NOTIFY_WEBHOOK_URL }}
           SLACK_COLOR: ${{ env.final_color }}
-          # Use the new variables
           SLACK_TITLE: "Workflows for $CTX_BRANCH ${{(env.final_title)}}"
           SLACK_MESSAGE: |
             All workflows for commit `$CTX_SHA` have completed.
