@@ -51,7 +51,9 @@ jobs:
           echo "WORKFLOW_RUN trigger: Checking status once..."
           sleep 10 # Give the API a 10-second grace period
           
-          runs=$(gh run list --commit $CTX_SHA --repo $REPO --json status,conclusion,name,url)
+          # --- THIS IS THE FIX ---
+          # Use the global -R $REPO flag instead of the local --repo $REPO
+          runs=$(gh run list --commit $CTX_SHA -R $REPO --json status,conclusion,name,url)
           
           # Check if any *other* runs are NOT completed
           if echo "$runs" | jq -e ".[] | select(.name != \"$THIS_WORKFLOW_NAME\" and .status != \"completed\")" > /dev/null; then
@@ -89,7 +91,7 @@ jobs:
           echo "$summary" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
-      - name: Send notification to Discord
+      - name: Send notification to Slack/Discord/Teams
         if: env.all_complete == 'true'
         uses: rtCamp/action-slack-notify@v2
         env:
