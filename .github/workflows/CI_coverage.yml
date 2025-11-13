@@ -1,77 +1,59 @@
-name: Test Coverage
-
-on:
-  push:
-    branches:
-      - "**"     # Cualquier rama
-  pull_request:
-    branches:
-      - "**"     # Cualquier PR
-
+---
 concurrency:
-  group: coverage-${{ github.ref }}
   cancel-in-progress: true
-
-permissions:
-  contents: read
-
+  group: coverage-${{ github.ref }}
 jobs:
-
   coverage:
     name: Test Coverage
     runs-on: ubuntu-latest
+    
+    env:
+      FLASK_ENV: testing
+      MARIADB_DATABASE: pixelhubdb_test
+      MARIADB_HOSTNAME: 127.0.0.1
+      MARIADB_PASSWORD: pixelhubdb_password
+      MARIADB_PORT: 3306
+      MARIADB_ROOT_PASSWORD: pixelhubdb_root_password
+      MARIADB_TEST_DATABASE: pixelhubdb_test
+      MARIADB_USER: pixelhubdb_user
+    services:
+      # MariaDB service container for integration tests
+      mariadb:
+          # Global environment variables shared across services and steps
+    env:
+          MARIADB_DATABASE: ${{ env.MARIADB_DATABASE }}
+          MARIADB_PASSWORD: ${{ env.MARIADB_PASSWORD }}
+          MARIADB_ROOT_PASSWORD: ${{ env.MARIADB_ROOT_PASSWORD }}
+          MARIADB_USER: ${{ env.MARIADB_USER }}
+        image: mariadb:12.0.2
+        options: >-
+          --health-cmd="mariadb-admin ping -u root -p$MARIADB_ROOT_PASSWORD"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
 
-     # Global environment variables shared across services and steps
-  env:
-    MARIADB_ROOT_PASSWORD: pixelhubdb_root_password
-    MARIADB_DATABASE: pixelhubdb_test
-    MARIADB_TEST_DATABASE: pixelhubdb_test
-    MARIADB_USER: pixelhubdb_user
-    MARIADB_PASSWORD: pixelhubdb_password
-    MARIADB_HOSTNAME: 127.0.0.1
-    MARIADB_PORT: 3306
-    FLASK_ENV: testing
-
-  services:
-    # MariaDB service container for integration tests
-    mariadb:
-      image: mariadb:12.0.2
-      env:
-        MARIADB_ROOT_PASSWORD: ${{ env.MARIADB_ROOT_PASSWORD }}
-        MARIADB_DATABASE: ${{ env.MARIADB_DATABASE }}
-        MARIADB_USER: ${{ env.MARIADB_USER }}
-        MARIADB_PASSWORD: ${{ env.MARIADB_PASSWORD }}
-      ports:
-        - 3306:3306
-      options: >-
-        --health-cmd="mariadb-admin ping -u root -p$MARIADB_ROOT_PASSWORD"
-        --health-interval=10s
-        --health-timeout=5s
-        --health-retries=3
-
+        ports:
+          - '3306:3306'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-
+          python-version: '3.11'
       - name: Cache pip
         uses: actions/cache@v3
         with:
-          path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-
+          path: ~/.cache/pip
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
           pip install pytest pytest-cov
 
-      - name: Run tests with coverage (ignoring Selenium)
-        env:
+      - env:
           PYTHONUNBUFFERED: 1
+        name: Run tests with coverage (ignoring Selenium)
         run: |
           pytest \
             --cov=app \
@@ -84,3 +66,13 @@ jobs:
         with:
           name: coverage-xml
           path: coverage.xml
+name: Test Coverage
+'on':
+  pull_request:
+    branches:
+      - '**'
+  push:
+    branches:
+      - '**'
+permissions:
+  contents: read
