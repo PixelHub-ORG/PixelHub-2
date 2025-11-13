@@ -18,6 +18,9 @@ on:
       - "Pytest"
     types:
       - completed
+  push:
+    branches:
+      - "**"
 
 concurrency:
   group: completion-notify-${{ github.event.workflow_run.head_sha }}
