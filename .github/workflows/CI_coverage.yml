@@ -24,9 +24,9 @@ jobs:
       FLASK_ENV: testing
       MARIADB_DATABASE: pixelhubdb_test
       MARIADB_HOSTNAME: 127.0.0.1
-      MARIADB_PASSWORD: pixelhubdb_password
+      MARIADB_PASSWORD: pixelhubdb_password # pragma: allowlist secret
       MARIADB_PORT: 3306
-      MARIADB_ROOT_PASSWORD: pixelhubdb_root_password
+      MARIADB_ROOT_PASSWORD: pixelhubdb_root_password # pragma: allowlist secret
       MARIADB_TEST_DATABASE: pixelhubdb_test
       MARIADB_USER: pixelhubdb_user
 
