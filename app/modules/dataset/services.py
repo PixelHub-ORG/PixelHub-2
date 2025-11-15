@@ -64,7 +64,21 @@ class DataSetService(BaseService):
 
     def get_synchronized(self, current_user_id: int) -> DataSet:
         return self.repository.get_synchronized(current_user_id)
-
+    
+    # ordenamos por descargas y si hay empate por reciente
+    def get_dataset_recommendations(self,dataset,limit=5)-> DataSet:
+        other_datasets = DataSet.query.filter(DataSet.id != dataset.id).all()
+        scored_datasets = []
+        for ds in other_datasets:
+            score = dataset.calculate_similarity_score(ds)
+            scored_datasets.append((ds, score))
+        scored_datasets_sorted = sorted(
+            scored_datasets,
+            key=lambda x: (x[1], x[0].get_download_count(), x[0].created_at),
+            reverse=True
+        )
+        return [ds for ds, _ in scored_datasets_sorted[:limit]]
+        
     def get_unsynchronized(self, current_user_id: int) -> DataSet:
         return self.repository.get_unsynchronized(current_user_id)
 

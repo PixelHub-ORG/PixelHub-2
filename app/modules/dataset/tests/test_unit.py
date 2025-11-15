@@ -1,12 +1,12 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from flask import Flask, url_for
-from datetime import datetime, timezone
+from flask import Flask
+from datetime import datetime, timezone, timedelta
 from app.modules.dataset.services import DataSetService
 from app.modules.dataset.repositories import DSDownloadRecordRepository
-from app.modules.dataset.models import DataSet
+from app.modules.dataset.models import DataSet, DSMetaData, Author, PublicationType
 from app.modules.dataset.services import DSDownloadRecordService
-from app.modules.badge.routes import badge_bp, get_dataset, make_segment
+from app.modules.badge.routes import badge_bp, make_segment
 
 FIXED_TIME = datetime(2025, 12, 1, 15, 0, 0, tzinfo=timezone.utc)
 
@@ -30,7 +30,6 @@ def download_service(mock_dsdownloadrecord_repository):
     service.repository = mock_dsdownloadrecord_repository
     return service
 
-#badge
 @pytest.fixture
 def app():
     app = Flask(__name__)
@@ -38,12 +37,10 @@ def app():
     app.config['TESTING'] = True
     return app
 
-#badge
 @pytest.fixture
 def client(app):
     return app.test_client()
 
-#badge
 @pytest.fixture
 def mock_dataset():
     ds_mock = {
@@ -307,7 +304,6 @@ def test_get_dataset_leaderboard_with_special_characters_in_period(dataset_servi
 
     assert len(leaderboard_data) == 3
 
-#badge feature
 @patch("app.modules.badge.routes.get_dataset")
 def test_badge_svg_download_success(mock_get_dataset, client, mock_dataset):
     mock_get_dataset.return_value = mock_dataset

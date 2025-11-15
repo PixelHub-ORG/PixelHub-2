@@ -108,6 +108,42 @@ class DataSet(db.Model):
         from app.modules.dataset.services import DataSetService
 
         return DataSetService().get_uvlhub_doi(self)
+    
+    def get_authors_set(self):
+        return set(self.ds_meta_data.authors) if self.ds_meta_data.authors else set()
+    
+    def get_tags_set(self):
+        return set(self.ds_meta_data.tags.split(",")) if self.ds_meta_data.tags else set()
+    
+    def get_publication_type(self):
+        return self.ds_meta_data.publication_type
+    
+    def calculate_similarity_score(self, other_dataset):
+        # Similarity score
+        score = 0
+
+        # Increment per common author
+        self_authors = {a.id for a in self.get_authors_set()}
+        other_authors = {a.id for a in other_dataset.get_authors_set()}
+        common_authors = self_authors.intersection(other_authors)
+
+        score += len(common_authors) * 10
+
+        # Increment per common tag
+        self_tags = self.get_tags_set()
+        other_tags = other_dataset.get_tags_set()
+        common_tags = self_tags.intersection(other_tags)
+
+        score += len(common_tags) * 3
+        
+        # Increment common publication type
+        self_publication_type = self.get_publication_type()
+        other_publication_type = other_dataset.get_publication_type()
+
+        if (self_publication_type == other_publication_type):
+            score += 6
+
+        return score
 
     def to_dict(self):
         return {
