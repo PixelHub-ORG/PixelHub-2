@@ -238,6 +238,7 @@ def download_dataset(dataset_id):
 
     return resp
 
+
 # lo modificamos para q ademas muestre los related datasets
 @dataset_bp.route("/doi/<path:doi>/", methods=["GET"])
 def subdomain_index(doi):
@@ -260,7 +261,10 @@ def subdomain_index(doi):
     # Save the cookie to the user's browser
     user_cookie = ds_view_record_service.create_cookie(dataset=dataset)
     related_datasets = dataset_service.get_dataset_recommendations(dataset=dataset)
-    resp = make_response(render_template("dataset/view_dataset.html", dataset=dataset,related_datasets=related_datasets))
+    resp = make_response(render_template(
+        "dataset/view_dataset.html",
+        dataset=dataset,
+        related_datasets=related_datasets))
     resp.set_cookie("view_cookie", user_cookie)
 
     return resp

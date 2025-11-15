@@ -66,7 +66,7 @@ class DataSetService(BaseService):
         return self.repository.get_synchronized(current_user_id)
     
     # ordenamos por descargas y si hay empate por reciente
-    def get_dataset_recommendations(self,dataset,limit=5)-> DataSet:
+    def get_dataset_recommendations(self, dataset, limit=5) -> DataSet:
         other_datasets = DataSet.query.filter(DataSet.id != dataset.id).all()
         scored_datasets = []
         for ds in other_datasets:
@@ -105,14 +105,16 @@ class DataSetService(BaseService):
 
     def total_dataset_views(self) -> int:
         return self.dsviewrecord_repostory.total_dataset_views()
-    
+       
     def get_dataset_leaderboard(self, period="week") -> DataSet:
         period = ''.join(e for e in period if e.isalnum())
         if period not in ["week", "month"]:
             raise ValueError("Periodo no soportado: usa 'week' o 'month'")
-        
-        return self.dsdownloadrecord_repository.top_3_dowloaded_datasets_per_week(period=period)
-
+        datasets = self.dsdownloadrecord_repository.top_3_dowloaded_datasets_per_week(period=period)
+        if not datasets:  # Manejar None o lista vacía
+            return []
+        datasets_with_doi = [d for d in datasets if d.ds_meta_data and d.ds_meta_data.dataset_doi]
+        return datasets_with_doi
 
     def create_from_form(self, form, current_user) -> DataSet:
         main_author = {

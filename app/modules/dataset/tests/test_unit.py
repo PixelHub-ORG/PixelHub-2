@@ -64,7 +64,6 @@ def test_download_counter_registered_for_authenticated_user(
     test_user_id = 99
     test_dataset_id = 1
     test_cookie = "auth-cookie-123"
-    
     download_service.create(
         user_id=test_user_id,
         dataset_id=test_dataset_id,
@@ -88,9 +87,9 @@ def test_download_counter_registered_for_unauthenticated_user(
     test_cookie = "anon-cookie-456"
 
     download_service.create(
-        user_id=None, 
+        user_id=None,
         dataset_id=test_dataset_id,
-        download_date=FIXED_TIME, 
+        download_date=FIXED_TIME,
         download_cookie=test_cookie,
     )
 
@@ -108,14 +107,12 @@ def test_multiple_downloads_from_same_user_are_registered(
     test_user_id = 77
     test_dataset_id = 5
     test_cookie = "repetitive-cookie"
-    
     download_service.create(
         user_id=test_user_id,
         dataset_id=test_dataset_id,
         download_date=FIXED_TIME,
         download_cookie=test_cookie,
     )
-    
     download_service.create(
         user_id=test_user_id,
         dataset_id=test_dataset_id,
@@ -124,7 +121,6 @@ def test_multiple_downloads_from_same_user_are_registered(
     )
 
     assert mock_dsdownloadrecord_repository.create.call_count == 2
-    
     mock_dsdownloadrecord_repository.create.assert_any_call(
         user_id=test_user_id,
         dataset_id=test_dataset_id,
@@ -146,7 +142,6 @@ def test_download_counter_raises_error_with_null_dataset_id(
             download_date=FIXED_TIME,
             download_cookie="null-id-cookie",
         )
-        
     mock_dsdownloadrecord_repository.create.assert_called_once()
 
 
@@ -162,8 +157,7 @@ def test_download_counter_raises_error_with_null_cookie(
             dataset_id=3,
             download_date=FIXED_TIME,
             download_cookie=None,
-        )
-        
+        ) 
     mock_dsdownloadrecord_repository.create.assert_called_once()
 
 
@@ -247,7 +241,7 @@ def test_get_dataset_leaderboard_with_null_data(dataset_service,
         return_value = None
     period = "week"
     leaderboard_data = dataset_service.get_dataset_leaderboard(period=period)
-    assert leaderboard_data is None
+    assert leaderboard_data == []
 
 
 def test_get_dataset_leaderboard_limit_parameter(dataset_service, mock_dsdownloadrecord_repository):
@@ -320,7 +314,6 @@ def test_get_dataset_leaderboard_with_special_characters_in_period(dataset_servi
 def test_badge_svg_download_success(mock_get_dataset, client, mock_dataset):
     mock_get_dataset.return_value = mock_dataset
     response = client.get("/badge/1.svg")
-    
     assert response.status_code == 200
     assert response.mimetype == "image/svg+xml"
     assert f'{mock_dataset["downloads"]} DL' in response.get_data(as_text=True)
@@ -333,7 +326,6 @@ def test_badge_svg_download_success(mock_get_dataset, client, mock_dataset):
 def test_badge_svg_download_not_found(mock_get_dataset, client):
     mock_get_dataset.return_value = None
     response = client.get("/badge/999.svg")
-    
     assert response.status_code == 404
     assert b"Dataset not found" in response.data
 
@@ -342,7 +334,6 @@ def test_badge_svg_download_not_found(mock_get_dataset, client):
 def test_badge_svg_success(mock_get_dataset, client, mock_dataset):
     mock_get_dataset.return_value = mock_dataset
     response = client.get("/badge/1/svg")
-    
     assert response.status_code == 200
     assert response.mimetype == "image/svg+xml"
     assert f'{mock_dataset["downloads"]} DL' in response.get_data(as_text=True)
@@ -354,7 +345,6 @@ def test_badge_svg_success(mock_get_dataset, client, mock_dataset):
 def test_badge_svg_not_found(mock_get_dataset, client):
     mock_get_dataset.return_value = None
     response = client.get("/badge/999/svg")
-    
     assert response.status_code == 404
     assert b"Dataset not found" in response.data
 
@@ -364,9 +354,7 @@ def test_badge_svg_not_found(mock_get_dataset, client):
 def test_badge_embed_success(mock_url_for, mock_get_dataset, client, mock_dataset):
     mock_get_dataset.return_value = mock_dataset
     mock_url_for.return_value = "http://example.com/badge/1/svg"
-    
     response = client.get("/badge/1/embed")
-    
     assert response.status_code == 200
     data = response.get_json()
     assert "markdown" in data
@@ -381,7 +369,6 @@ def test_badge_embed_success(mock_url_for, mock_get_dataset, client, mock_datase
 def test_badge_embed_not_found(mock_get_dataset, client):
     mock_get_dataset.return_value = None
     response = client.get("/badge/999/embed")
-    
     assert response.status_code == 404
     data = response.get_json()
     assert data["error"] == "Dataset not found"
@@ -413,7 +400,6 @@ def mock_dataset_with_data():
 
 @pytest.fixture
 def mock_all_datasets_query():
-    
     ds1_meta = MagicMock(spec=DSMetaData,
                          authors=[MagicMock(spec=Author, id=1, name="A1")],
                          tags="spl,mobile,app,android",
@@ -465,7 +451,7 @@ def test_recommendations_prioritize_high_score_and_downloads(
     ds1_base_score = 40
     ds2_base_score = 10
     ds3_base_score = 30
-    
+   
     def side_effect(self, other_dataset):
         if other_dataset.id == 11:
             return ds1_base_score
@@ -478,7 +464,7 @@ def test_recommendations_prioritize_high_score_and_downloads(
     recommendations = dataset_service.get_dataset_recommendations(mock_dataset_with_data, limit=3)
 
     assert len(recommendations) == 3
-    assert recommendations[0].id == 12 
+    assert recommendations[0].id == 12
     assert recommendations[1].id == 13
     assert recommendations[2].id == 11
 
@@ -498,6 +484,7 @@ def test_recommendations_returns_random_3__if_no_match(
     recommendations = dataset_service.get_dataset_recommendations(mock_dataset_with_data, limit=3)
     assert len(recommendations) == 3
 
+
 @patch('app.modules.dataset.models.DataSet.calculate_similarity_score', autospec=True)
 @patch('app.modules.dataset.models.DataSet.query', new_callable=MagicMock)
 def test_recommendations_respects_limit(
@@ -510,11 +497,8 @@ def test_recommendations_respects_limit(
 
     mock_dataset_query.filter.return_value = mock_dataset_query
     mock_dataset_query.all.return_value = mock_all_datasets_query
-    
-    mock_similarity_score.return_value = 10 
-    
+    mock_similarity_score.return_value = 10
     recommendations = dataset_service.get_dataset_recommendations(mock_dataset_with_data, limit=2)
-    
     assert len(recommendations) == 2
 
 
@@ -526,12 +510,8 @@ def test_recommendations_excludes_target_dataset(
     dataset_service,
     mock_dataset_with_data
 ):
-    
     mock_dataset_query.filter.return_value = mock_dataset_query
     mock_dataset_query.all.return_value = [mock_dataset_with_data]
-
     mock_dataset_query.filter.return_value.all.return_value = []
-    
     recommendations = dataset_service.get_dataset_recommendations(mock_dataset_with_data, limit=5)
-    
     assert len(recommendations) == 0
