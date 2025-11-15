@@ -10,6 +10,7 @@ from app.modules.badge.routes import badge_bp, make_segment
 
 FIXED_TIME = datetime(2025, 12, 1, 15, 0, 0, tzinfo=timezone.utc)
 
+
 @pytest.fixture
 def mock_dsdownloadrecord_repository():
     repository = MagicMock(spec=DSDownloadRecordRepository)
@@ -24,11 +25,13 @@ def dataset_service(mock_dsdownloadrecord_repository):
     service.dsdownloadrecord_repository = mock_dsdownloadrecord_repository
     return service
 
+
 @pytest.fixture
 def download_service(mock_dsdownloadrecord_repository):
     service = DSDownloadRecordService()
     service.repository = mock_dsdownloadrecord_repository
     return service
+
 
 @pytest.fixture
 def app():
@@ -37,9 +40,11 @@ def app():
     app.config['TESTING'] = True
     return app
 
+
 @pytest.fixture
 def client(app):
     return app.test_client()
+
 
 @pytest.fixture
 def mock_dataset():
@@ -50,6 +55,7 @@ def mock_dataset():
         "url": "http://example.com/dataset"
     }
     return ds_mock
+
 
 def test_download_counter_registered_for_authenticated_user(
     download_service,
@@ -73,6 +79,7 @@ def test_download_counter_registered_for_authenticated_user(
         download_cookie=test_cookie,
     )
 
+
 def test_download_counter_registered_for_unauthenticated_user(
     download_service,
     mock_dsdownloadrecord_repository
@@ -92,6 +99,7 @@ def test_download_counter_registered_for_unauthenticated_user(
     assert kwargs.get('user_id') is None
     assert kwargs.get('dataset_id') == test_dataset_id
     assert kwargs.get('download_cookie') == test_cookie
+
 
 def test_multiple_downloads_from_same_user_are_registered(
     download_service,
@@ -124,6 +132,7 @@ def test_multiple_downloads_from_same_user_are_registered(
         download_cookie=test_cookie,
     )
 
+
 def test_download_counter_raises_error_with_null_dataset_id(
     download_service,
     mock_dsdownloadrecord_repository
@@ -140,6 +149,7 @@ def test_download_counter_raises_error_with_null_dataset_id(
         
     mock_dsdownloadrecord_repository.create.assert_called_once()
 
+
 def test_download_counter_raises_error_with_null_cookie(
     download_service,
     mock_dsdownloadrecord_repository
@@ -155,6 +165,7 @@ def test_download_counter_raises_error_with_null_cookie(
         )
         
     mock_dsdownloadrecord_repository.create.assert_called_once()
+
 
 def test_get_dataset_leaderboard_success(
     dataset_service,
@@ -304,6 +315,7 @@ def test_get_dataset_leaderboard_with_special_characters_in_period(dataset_servi
 
     assert len(leaderboard_data) == 3
 
+
 @patch("app.modules.badge.routes.get_dataset")
 def test_badge_svg_download_success(mock_get_dataset, client, mock_dataset):
     mock_get_dataset.return_value = mock_dataset
@@ -316,6 +328,7 @@ def test_badge_svg_download_success(mock_get_dataset, client, mock_dataset):
     assert response.headers["Access-Control-Allow-Origin"] == "*"
     assert response.headers["Cache-Control"] == "no-cache"
 
+
 @patch("app.modules.badge.routes.get_dataset")
 def test_badge_svg_download_not_found(mock_get_dataset, client):
     mock_get_dataset.return_value = None
@@ -323,6 +336,7 @@ def test_badge_svg_download_not_found(mock_get_dataset, client):
     
     assert response.status_code == 404
     assert b"Dataset not found" in response.data
+
 
 @patch("app.modules.badge.routes.get_dataset")
 def test_badge_svg_success(mock_get_dataset, client, mock_dataset):
@@ -335,6 +349,7 @@ def test_badge_svg_success(mock_get_dataset, client, mock_dataset):
     assert "Content-Disposition" not in response.headers
     assert response.headers["Access-Control-Allow-Origin"] == "*"
 
+
 @patch("app.modules.badge.routes.get_dataset")
 def test_badge_svg_not_found(mock_get_dataset, client):
     mock_get_dataset.return_value = None
@@ -342,6 +357,7 @@ def test_badge_svg_not_found(mock_get_dataset, client):
     
     assert response.status_code == 404
     assert b"Dataset not found" in response.data
+
 
 @patch("app.modules.badge.routes.get_dataset")
 @patch("app.modules.badge.routes.url_for")
@@ -360,6 +376,7 @@ def test_badge_embed_success(mock_url_for, mock_get_dataset, client, mock_datase
     assert mock_dataset["doi"] in data["markdown"]
     assert "http://example.com/badge/1/svg" in data["html"]
 
+
 @patch("app.modules.badge.routes.get_dataset")
 def test_badge_embed_not_found(mock_get_dataset, client):
     mock_get_dataset.return_value = None
@@ -369,9 +386,114 @@ def test_badge_embed_not_found(mock_get_dataset, client):
     data = response.get_json()
     assert data["error"] == "Dataset not found"
 
+
 def test_make_segment_width_estimation():
     seg = make_segment("Test", "#123456", font_size=10, pad_x=5, min_w=40)
     assert seg["text"] == "Test"
     assert seg["bg"] == "#123456"
     assert seg["w"] >= 40
 
+
+@pytest.fixture
+def mock_dataset_with_data():
+    mock_author_1 = MagicMock(spec=Author, id=1, name="A1")
+    mock_author_2 = MagicMock(spec=Author, id=2, name="A2")
+    mock_meta = MagicMock(spec=DSMetaData,
+                          authors=[mock_author_1, mock_author_2],
+                          tags="spl,mobile,app",
+                          publication_type=PublicationType.JOURNAL_ARTICLE)
+    target_ds = MagicMock(spec=DataSet, id=10)
+    target_ds.ds_meta_data = mock_meta
+    target_ds.get_authors_set.return_value = target_ds.ds_meta_data.authors
+    target_ds.get_tags_set.return_value = set(target_ds.ds_meta_data.tags.split(','))
+    target_ds.get_publication_type.return_value = target_ds.ds_meta_data.publication_type
+    target_ds.get_download_count.return_value = 0
+    return target_ds
+
+
+@pytest.fixture
+def mock_all_datasets_query():
+    
+    ds1_meta = MagicMock(spec=DSMetaData,
+                         authors=[MagicMock(spec=Author, id=1, name="A1")],
+                         tags="spl,mobile,app,android",
+                         publication_type=PublicationType.JOURNAL_ARTICLE)
+    ds1 = MagicMock(spec=DataSet, id=11, created_at=datetime(2023, 1, 1))
+    ds1.ds_meta_data = ds1_meta
+    ds1.get_authors_set.return_value = ds1.ds_meta_data.authors
+    ds1.get_tags_set.return_value = set(ds1.ds_meta_data.tags.split(','))
+    ds1.get_publication_type.return_value = ds1.ds_meta_data.publication_type
+    ds1.get_download_count.return_value = 5
+
+    ds2_meta = MagicMock(spec=DSMetaData,
+                         authors=[MagicMock(spec=Author, id=3, name="A3")],
+                         tags="game,puzzle",
+                         publication_type=PublicationType.BOOK)
+    ds2 = MagicMock(spec=DataSet, id=12, created_at=datetime.now(timezone.utc) - timedelta(days=1))
+    ds2.ds_meta_data = ds2_meta
+    ds2.get_authors_set.return_value = ds2.ds_meta_data.authors
+    ds2.get_tags_set.return_value = set(ds2.ds_meta_data.tags.split(','))
+    ds2.get_publication_type.return_value = ds2.ds_meta_data.publication_type
+    ds2.get_download_count.return_value = 1000
+
+    ds3_meta = MagicMock(spec=DSMetaData,
+                         authors=[MagicMock(spec=Author, id=2, name="A2")],
+                         tags="spl,analysis",
+                         publication_type=PublicationType.CONFERENCE_PAPER)
+    ds3 = MagicMock(spec=DataSet, id=13, created_at=datetime.now(timezone.utc) - timedelta(days=30))
+    ds3.ds_meta_data = ds3_meta
+    ds3.get_authors_set.return_value = ds3.ds_meta_data.authors
+    ds3.get_tags_set.return_value = set(ds3.ds_meta_data.tags.split(','))
+    ds3.get_publication_type.return_value = ds3.ds_meta_data.publication_type
+    ds3.get_download_count.return_value = 350
+
+    return [ds1, ds2, ds3]
+
+
+@patch('app.modules.dataset.models.DataSet.calculate_similarity_score', autospec=True)
+@patch('app.modules.dataset.models.DataSet.query', new_callable=MagicMock)
+def test_recommendations_prioritize_high_score_and_downloads(
+    mock_dataset_query,
+    mock_similarity_score,
+    dataset_service,
+    mock_dataset_with_data,
+    mock_all_datasets_query
+):
+    mock_dataset_query.filter.return_value = mock_dataset_query
+    mock_dataset_query.all.return_value = mock_all_datasets_query
+
+    ds1_base_score = 40
+    ds2_base_score = 10
+    ds3_base_score = 30
+    
+    def side_effect(self, other_dataset):
+        if other_dataset.id == 11:
+            return ds1_base_score
+        if other_dataset.id == 12:
+            return ds2_base_score
+        if other_dataset.id == 13:
+            return ds3_base_score
+        return 0
+    mock_similarity_score.side_effect = side_effect
+    recommendations = dataset_service.get_dataset_recommendations(mock_dataset_with_data, limit=3)
+
+    assert len(recommendations) == 3
+    assert recommendations[0].id == 12 
+    assert recommendations[1].id == 13
+    assert recommendations[2].id == 11
+
+
+@patch('app.modules.dataset.models.DataSet.calculate_similarity_score', autospec=True)
+@patch('app.modules.dataset.models.DataSet.query', new_callable=MagicMock)
+def test_recommendations_returns_random_3__if_no_match(
+    mock_dataset_query,
+    mock_similarity_score,
+    dataset_service,
+    mock_dataset_with_data,
+    mock_all_datasets_query
+):
+    mock_dataset_query.filter.return_value = mock_dataset_query
+    mock_dataset_query.all.return_value = mock_all_datasets_query
+    mock_similarity_score.return_value = 0
+    recommendations = dataset_service.get_dataset_recommendations(mock_dataset_with_data, limit=3)
+    assert len(recommendations) == 3
