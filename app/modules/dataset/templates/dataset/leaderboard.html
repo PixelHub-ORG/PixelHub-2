@@ -42,10 +42,7 @@
                     <strong>Main Author:</strong> 
                     {{ dataset.ds_meta_data.authors[0].name if dataset.ds_meta_data.authors else "Unknown" }}
                 </p>
-                <p class="card-text mb-1">
-                    <strong>Community:</strong> 
-                    {{ dataset.community or 'N/A' }}
-                </p>
+               
                 <p class="card-text mb-1">
                     <strong>Downloads:</strong> {{ dataset.get_download_count() }}
                 </p>
