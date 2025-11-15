@@ -497,3 +497,41 @@ def test_recommendations_returns_random_3__if_no_match(
     mock_similarity_score.return_value = 0
     recommendations = dataset_service.get_dataset_recommendations(mock_dataset_with_data, limit=3)
     assert len(recommendations) == 3
+
+@patch('app.modules.dataset.models.DataSet.calculate_similarity_score', autospec=True)
+@patch('app.modules.dataset.models.DataSet.query', new_callable=MagicMock)
+def test_recommendations_respects_limit(
+    mock_dataset_query,
+    mock_similarity_score,
+    dataset_service,
+    mock_dataset_with_data,
+    mock_all_datasets_query
+):
+
+    mock_dataset_query.filter.return_value = mock_dataset_query
+    mock_dataset_query.all.return_value = mock_all_datasets_query
+    
+    mock_similarity_score.return_value = 10 
+    
+    recommendations = dataset_service.get_dataset_recommendations(mock_dataset_with_data, limit=2)
+    
+    assert len(recommendations) == 2
+
+
+@patch('app.modules.dataset.models.DataSet.calculate_similarity_score', autospec=True)
+@patch('app.modules.dataset.models.DataSet.query', new_callable=MagicMock)
+def test_recommendations_excludes_target_dataset(
+    mock_dataset_query,
+    mock_similarity_score,
+    dataset_service,
+    mock_dataset_with_data
+):
+    
+    mock_dataset_query.filter.return_value = mock_dataset_query
+    mock_dataset_query.all.return_value = [mock_dataset_with_data]
+
+    mock_dataset_query.filter.return_value.all.return_value = []
+    
+    recommendations = dataset_service.get_dataset_recommendations(mock_dataset_with_data, limit=5)
+    
+    assert len(recommendations) == 0
