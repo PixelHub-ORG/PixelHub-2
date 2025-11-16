@@ -140,8 +140,17 @@ class DataSetService(BaseService):
         return self.dsmetadata_repository.update(id, **kwargs)
 
     def get_uvlhub_doi(self, dataset: DataSet) -> str:
+        env = os.getenv("FLASK_ENV", "production")
+        
         domain = os.getenv("DOMAIN", "localhost")
-        return f"http://{domain}/doi/{dataset.ds_meta_data.dataset_doi}"
+
+        if env == "development":
+            protocol = "http"
+        else:
+            protocol = "https"
+
+        # 4. Construye la URL
+        return f"{protocol}://{domain}/doi/{dataset.ds_meta_data.dataset_doi}"
 
 
 class AuthorService(BaseService):
