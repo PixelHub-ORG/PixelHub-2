@@ -31,6 +31,7 @@ def create_app(config_name="development"):
     # Load ORCID config from .env
     app.config["ORCID_CLIENT_ID"] = os.environ.get("ORCID_CLIENT_ID")
     app.config["ORCID_CLIENT_SECRET"] = os.environ.get("ORCID_CLIENT_SECRET")
+    app.config["FAKENODO_URL"] = os.environ.get("FAKENODO_URL", "https://zenodo.org")
 
     # Initialize SQLAlchemy and Migrate with the app
     db.init_app(app)
@@ -81,6 +82,7 @@ def create_app(config_name="development"):
             "FLASK_ENV": os.getenv("FLASK_ENV"),
             "DOMAIN": os.getenv("DOMAIN", "localhost"),
             "APP_VERSION": get_app_version(),
+            "FAKENODO_URL": os.getenv("FAKENODO_URL", "https://zenodo.org"),
         }
 
     return app

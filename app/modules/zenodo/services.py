@@ -8,6 +8,7 @@ from flask_login import current_user
 
 from app.modules.dataset.models import DataSet
 from app.modules.featuremodel.models import FeatureModel
+from app.modules.zenodo.forms import ZenodoForm
 from app.modules.zenodo.repositories import ZenodoRepository
 from core.configuration.configuration import uploads_folder_name
 from core.services.BaseService import BaseService
@@ -94,8 +95,7 @@ class ZenodoService(BaseService):
                 {
                     "success": False,
                     "messages": "Failed to create test deposition on Zenodo.\n"
-                    "Response code: {}. Body: {}".format(response.status_code, response.text)
-
+                    "Response code: {}. Body: {}".format(response.status_code, response.text),
                 }
             )
 
@@ -171,7 +171,7 @@ class ZenodoService(BaseService):
                 for author in dataset.ds_meta_data.authors
             ],
             "keywords": (
-                ["uvlhub"] if not dataset.ds_meta_data.tags else dataset.ds_meta_data.tags.split(", ") + ["uvlhub"]
+                ["pixelhub"] if not dataset.ds_meta_data.tags else dataset.ds_meta_data.tags.split(", ") + ["pixelhub"]
             ),
             "access_right": "open",
             "license": "CC-BY-4.0",
@@ -210,6 +210,7 @@ class ZenodoService(BaseService):
 
         publish_url = f"{self.ZENODO_API_URL}/{deposition_id}/files"
         response = requests.post(publish_url, params=self.params, data=data, files=files)
+
         if response.status_code != 201:
             error_message = f"Failed to upload files. Error details: {response.json()}"
             raise Exception(error_message)
@@ -290,3 +291,15 @@ class ZenodoService(BaseService):
             str: The DOI of the deposition.
         """
         return self.get_deposition(deposition_id).get("doi")
+
+
+def test_zenodo_form_creation(test_client):
+    """
+    Prueba la creación de ZenodoForm para cubrir forms.py.
+    """
+    # El test se ejecuta dentro del contexto de la app para cargar extensiones (como CSRF)
+    with test_client.application.app_context():
+        form = ZenodoForm()
+        # Verificamos que el formulario se haya creado y tenga el campo submit
+        assert form is not None
+        assert form.submit is not None
