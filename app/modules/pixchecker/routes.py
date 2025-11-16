@@ -28,12 +28,30 @@ def check_pix(file_id):
             lines = fh.readlines()
 
         errors = []
+        parsed_pairs = []
 
-        # Allow either unquoted identifiers (letters, digits, underscore, dash)
-        # or quoted strings (single or double) which may include spaces.
-        element_header_re = re.compile(r"^\s*(?:\"([^\"]+)\"|'([^']+)'|([A-Za-z_][\w\-]*))\s*\{\s*$")
-        # For attributes: key can be quoted or unquoted, value is the rest (non-empty, trimmed)
-        attr_re = re.compile(r"^\s*(?:\"([^\"]+)\"|'([^']+)'|([A-Za-z_][\w\-]*))\s*:\s*(\S(?:.*\S)?)\s*$")
+        # Allow either unquoted identifiers or quoted strings (single or double) which may include spaces.
+        # We capture the raw token and then "unquote" it so mixed or repeated quote combinations
+        # (e.g. '"name"' or '"name\'' ) are normalized by stripping surrounding quote pairs.
+        element_header_re = re.compile(r"^\s*(?P<name>(?:\"[^\"]*\"|'[^']*'|[^\{\s][^\{]*?))\s*\{\s*$")
+        # For attributes: key can be quoted or unquoted, separator can be ':' or '=', value may be empty.
+        attr_re = re.compile(
+            r"^\s*(?P<key>(?:\"[^\"]*\"|'[^']*'|[^:=\s][^:=\{]*?))"
+            r"\s*(?P<sep>[:=])\s*(?P<value>.*?)\s*$"
+        )
+
+        def unquote_token(tok: str) -> str:
+            """Strip surrounding quote pairs (single or double) repeatedly.
+
+            Example: '"name"' -> name, "'foo'" -> foo
+            """
+            if tok is None:
+                return tok
+            s = tok.strip()
+            # strip matching or mixed surrounding quotes as long as both ends are quotes
+            while len(s) >= 2 and (s[0] in "'\"" and s[-1] in "'\""):
+                s = s[1:-1]
+            return s
 
         state = "outside"  # or "inside"
         current_element = None
@@ -45,9 +63,8 @@ def check_pix(file_id):
                     continue
                 m = element_header_re.match(line)
                 if m:
-                    # group(1) -> double-quoted name, group(2) -> single-quoted name,
-                    # group(3) -> unquoted identifier
-                    current_element = m.group(1) or m.group(2) or m.group(3)
+                    raw_name = m.group("name")
+                    current_element = unquote_token(raw_name)
                     state = "inside"
                 else:
                     errors.append(f"Line {idx}: Expected element header like 'name{{' but got: {line!r}")
@@ -63,16 +80,18 @@ def check_pix(file_id):
                 # attribute line expected
                 m = attr_re.match(line)
                 if m:
-                    # key: group(1) double-quoted, group(2) single-quoted, group(3) unquoted
-                    value = m.group(4)
-                    # a simple additional check: value should not contain braces
-                    if "{" in value or "}" in value:
-                        errors.append(f"Line {idx}: Attribute value must not contain '{{' or '}}': {line!r}")
+                    raw_key = m.group("key")
+                    key = unquote_token(raw_key)
+                    value = m.group("value")
+                    # record parsed key/value for potential future use
+                    parsed_pairs.append((key, value))
                 else:
                     if "{" in line:
                         errors.append(f"Line {idx}: Unexpected '{{' inside element {current_element!r}")
                     else:
-                        errors.append(f"Line {idx}: Invalid attribute format, expected 'key=value', got: {line!r}")
+                        errors.append(
+                            f"Line {idx}: Invalid attribute format, expected 'key:val' or 'key=val', got: {line!r}"
+                        )
 
         if state == "inside":
             errors.append(f"Unexpected end of file: missing closing '}}' for element {current_element!r}")

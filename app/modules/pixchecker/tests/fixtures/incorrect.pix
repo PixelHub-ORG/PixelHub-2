@@ -1,0 +1,8 @@
+element1{
+    attr1 value1
+    attr2: value2
+
+# missing brace for element1 and invalid header for element2
+element2
+    key: value
+}

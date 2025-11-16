@@ -1,24 +1,53 @@
+import os
+from unittest.mock import MagicMock, patch
+from flask import Flask
 import pytest
 
-
-@pytest.fixture(scope='module')
-def test_client(test_client):
-    """
-    Extends the test_client fixture to add additional specific data for module testing.
-    """
-    with test_client.application.app_context():
-        # Add HERE new elements to the database that you want to exist in the test context.
-        # DO NOT FORGET to use db.session.add(<element>) and db.session.commit() to save the data.
-        pass
-
-    yield test_client
+from app.modules.pixchecker import pixchecker_bp
 
 
-def test_sample_assertion(test_client):
-    """
-    Sample test to verify that the test framework and environment are working correctly.
-    It does not communicate with the Flask application; it only performs a simple assertion to
-    confirm that the tests in this module can be executed.
-    """
-    greeting = "Hello, World!"
-    assert greeting == "Hello, World!", "The greeting does not coincide with 'Hello, World!'"
+@pytest.fixture
+def app():
+    app = Flask(__name__)
+    app.register_blueprint(pixchecker_bp)
+    app.config["TESTING"] = True
+    return app
+
+
+@pytest.fixture
+def client(app):
+    return app.test_client()
+
+
+def make_hubfile_mock(path):
+    m = MagicMock()
+    m.get_path.return_value = path
+    return m
+
+
+@patch("app.modules.pixchecker.routes.HubfileService")
+def test_check_pix_valid(MockHubfileService, client):
+    fixtures_dir = os.path.join(os.path.dirname(__file__), "fixtures")
+    fixture = os.path.join(fixtures_dir, "correct.pix")
+
+    mock_hub = make_hubfile_mock(fixture)
+    MockHubfileService.return_value.get_or_404.return_value = mock_hub
+
+    resp = client.get("/pixchecker/check_pix/10")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data.get("message") == "Valid Model"
+
+
+@patch("app.modules.pixchecker.routes.HubfileService")
+def test_check_pix_invalid(MockHubfileService, client):
+    fixtures_dir = os.path.join(os.path.dirname(__file__), "fixtures")
+    fixture = os.path.join(fixtures_dir, "incorrect.pix")
+
+    mock_hub = make_hubfile_mock(fixture)
+    MockHubfileService.return_value.get_or_404.return_value = mock_hub
+
+    resp = client.get("/pixchecker/check_pix/5")
+    assert resp.status_code == 400
+    data = resp.get_json()
+    assert "errors" in data and len(data["errors"]) > 0

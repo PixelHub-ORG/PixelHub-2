@@ -66,7 +66,7 @@ class DataSetSeeder(BaseSeeder):
         ]
         seeded_datasets = self.seed(datasets)
 
-        # Assume there are 12 files, create corresponding FMMetaData and FileModel
+        # Assume there are 11 files, create corresponding FMMetaData and FileModel
         fm_meta_data_list = [
             FMMetaData(
                 filename=f"file{i+1}.pix",
@@ -76,7 +76,7 @@ class DataSetSeeder(BaseSeeder):
                 publication_doi=f"10.1234/fm{i+1}",
                 tags="tag1, tag2",
             )
-            for i in range(12)
+            for i in range(11)
         ]
         seeded_fm_meta_data = self.seed(fm_meta_data_list)
 
@@ -88,20 +88,20 @@ class DataSetSeeder(BaseSeeder):
                 orcid=f"0000-0000-0000-000{i+5}",
                 fm_meta_data_id=seeded_fm_meta_data[i].id,
             )
-            for i in range(12)
+            for i in range(11)
         ]
         self.seed(fm_authors)
 
         file_models = [
             FileModel(data_set_id=seeded_datasets[i // 3].id, fm_meta_data_id=seeded_fm_meta_data[i].id)
-            for i in range(12)
+            for i in range(11)
         ]
         seeded_file_models = self.seed(file_models)
         # Create files, associate them with FileModels and copy files
         load_dotenv()
         working_dir = os.getenv("WORKING_DIR", "")
-        src_folder = os.path.join(working_dir, "app", "modules", "dataset", "uvl_examples")
-        for i in range(12):
+        src_folder = os.path.join(working_dir, "app", "modules", "dataset", "pix_examples")
+        for i in range(11):
             file_name = f"file{i+1}.pix"
             file_model = seeded_file_models[i]
             dataset = next(ds for ds in seeded_datasets if ds.id == file_model.data_set_id)
