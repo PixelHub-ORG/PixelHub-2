@@ -1,0 +1,9 @@
+"element one"{
+    attr1: value1
+    "attr two": 
+}
+
+element2{
+    'a b': {some}
+    key=value
+}
