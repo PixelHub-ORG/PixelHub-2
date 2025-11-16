@@ -6,7 +6,7 @@ import pytest
 from unittest.mock import MagicMock, patch
 from flask_login import LoginManager
 from flask import Flask
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from app.modules.dataset.services import DataSetService
 from app.modules.dataset.repositories import DSDownloadRecordRepository
 from app.modules.dataset.models import DataSet, DSMetaData, Author, PublicationType
@@ -94,7 +94,6 @@ def test_download_counter_registered_for_authenticated_user(
     )
 
 
-
 def test_download_counter_registered_for_unauthenticated_user(
     download_service, mock_dsdownloadrecord_repository
 ):
@@ -105,15 +104,15 @@ def test_download_counter_registered_for_unauthenticated_user(
         user_id=None,
         dataset_id=test_dataset_id,
         download_date=FIXED_TIME,
-        download_date=FIXED_TIME,
         download_cookie=test_cookie,
     )
 
     mock_dsdownloadrecord_repository.create.assert_called_once()
     args, kwargs = mock_dsdownloadrecord_repository.create.call_args
-    assert kwargs.get('user_id') is None
-    assert kwargs.get('dataset_id') == test_dataset_id
-    assert kwargs.get('download_cookie') == test_cookie
+    assert kwargs.get("user_id") is None
+    assert kwargs.get("dataset_id") == test_dataset_id
+    assert kwargs.get("download_cookie") == test_cookie
+
 
 def test_multiple_downloads_from_same_user_are_registered(
     download_service, mock_dsdownloadrecord_repository
@@ -146,7 +145,6 @@ def test_multiple_downloads_from_same_user_are_registered(
     )
 
 
-
 def test_download_counter_raises_error_with_null_dataset_id(
     download_service, mock_dsdownloadrecord_repository
 ):
@@ -163,7 +161,6 @@ def test_download_counter_raises_error_with_null_dataset_id(
         )
 
     mock_dsdownloadrecord_repository.create.assert_called_once()
-
 
 
 def test_download_counter_raises_error_with_null_cookie(
@@ -184,7 +181,6 @@ def test_download_counter_raises_error_with_null_cookie(
         )
 
     mock_dsdownloadrecord_repository.create.assert_called_once()
-
 
 
 def test_get_dataset_leaderboard_success(
@@ -396,7 +392,6 @@ def test_badge_svg_download_success(mock_get_dataset, client, mock_dataset):
     assert response.headers["Cache-Control"] == "no-cache"
 
 
-
 @patch("app.modules.badge.routes.get_dataset")
 def test_badge_svg_download_not_found(mock_get_dataset, client):
     mock_get_dataset.return_value = None
@@ -404,7 +399,6 @@ def test_badge_svg_download_not_found(mock_get_dataset, client):
 
     assert response.status_code == 404
     assert b"Dataset not found" in response.data
-
 
 
 @patch("app.modules.badge.routes.get_dataset")
@@ -419,7 +413,6 @@ def test_badge_svg_success(mock_get_dataset, client, mock_dataset):
     assert response.headers["Access-Control-Allow-Origin"] == "*"
 
 
-
 @patch("app.modules.badge.routes.get_dataset")
 def test_badge_svg_not_found(mock_get_dataset, client):
     mock_get_dataset.return_value = None
@@ -427,7 +420,6 @@ def test_badge_svg_not_found(mock_get_dataset, client):
 
     assert response.status_code == 404
     assert b"Dataset not found" in response.data
-
 
 
 @patch("app.modules.badge.routes.get_dataset")
@@ -491,6 +483,7 @@ def test_upload_valid(mock_current_user):
             except Exception:
                 u.id = user_id
             return u
+
         app.config["TESTING"] = True
         client = app.test_client()
 
@@ -499,7 +492,9 @@ def test_upload_valid(mock_current_user):
             sess["_user_id"] = "1"
 
         data = {"file": (io.BytesIO(b"dummy content"), "test.pix")}
-        resp = client.post("/dataset/file/upload", data=data, content_type="multipart/form-data")
+        resp = client.post(
+            "/dataset/file/upload", data=data, content_type="multipart/form-data"
+        )
 
         assert resp.status_code == 200
         j = resp.get_json()
@@ -538,6 +533,7 @@ def test_upload_invalid_extension(mock_current_user):
             except Exception:
                 u.id = user_id
             return u
+
         app.config["TESTING"] = True
         client = app.test_client()
 
@@ -546,7 +542,9 @@ def test_upload_invalid_extension(mock_current_user):
             sess["_user_id"] = "1"
 
         data = {"file": (io.BytesIO(b"dummy content"), "test.txt")}
-        resp = client.post("/dataset/file/upload", data=data, content_type="multipart/form-data")
+        resp = client.post(
+            "/dataset/file/upload", data=data, content_type="multipart/form-data"
+        )
 
         assert resp.status_code == 400
         j = resp.get_json()
@@ -558,12 +556,16 @@ def test_upload_invalid_extension(mock_current_user):
 @patch("app.modules.dataset.routes.current_user")
 @patch("app.modules.dataset.routes.DSDownloadRecordService")
 @patch("app.modules.dataset.routes.dataset_service")
-def test_download_dataset(mock_dataset_service, mock_dsdownload_service, mock_current_user):
+def test_download_dataset(
+    mock_dataset_service, mock_dsdownload_service, mock_current_user
+):
     # Prepare an uploads tree
     base_dir = os.getcwd()
     user_id = 42
     dataset_id = 99
-    uploads_path = os.path.join(base_dir, "uploads", f"user_{user_id}", f"dataset_{dataset_id}")
+    uploads_path = os.path.join(
+        base_dir, "uploads", f"user_{user_id}", f"dataset_{dataset_id}"
+    )
     os.makedirs(uploads_path, exist_ok=True)
     try:
         # create a sample file in dataset folder
@@ -602,6 +604,7 @@ def test_download_dataset(mock_dataset_service, mock_dsdownload_service, mock_cu
             except Exception:
                 u.id = user_id
             return u
+
         app.config["TESTING"] = True
         client = app.test_client()
 
@@ -617,69 +620,84 @@ def test_download_dataset(mock_dataset_service, mock_dsdownload_service, mock_cu
         # cleanup uploads
         shutil.rmtree(os.path.join(base_dir, "uploads"), ignore_errors=True)
 
+
 @pytest.fixture
 def mock_dataset_with_data():
     mock_author_1 = MagicMock(spec=Author, id=1, name="A1")
     mock_author_2 = MagicMock(spec=Author, id=2, name="A2")
-    mock_meta = MagicMock(spec=DSMetaData,
-                          authors=[mock_author_1, mock_author_2],
-                          tags="spl,mobile,app",
-                          publication_type=PublicationType.JOURNAL_ARTICLE)
+    mock_meta = MagicMock(
+        spec=DSMetaData,
+        authors=[mock_author_1, mock_author_2],
+        tags="spl,mobile,app",
+        publication_type=PublicationType.JOURNAL_ARTICLE,
+    )
     target_ds = MagicMock(spec=DataSet, id=10)
     target_ds.ds_meta_data = mock_meta
     target_ds.get_authors_set.return_value = target_ds.ds_meta_data.authors
-    target_ds.get_tags_set.return_value = set(target_ds.ds_meta_data.tags.split(','))
-    target_ds.get_publication_type.return_value = target_ds.ds_meta_data.publication_type
+    target_ds.get_tags_set.return_value = set(target_ds.ds_meta_data.tags.split(","))
+    target_ds.get_publication_type.return_value = (
+        target_ds.ds_meta_data.publication_type
+    )
     target_ds.get_download_count.return_value = 0
     return target_ds
 
 
 @pytest.fixture
 def mock_all_datasets_query():
-    ds1_meta = MagicMock(spec=DSMetaData,
-                         authors=[MagicMock(spec=Author, id=1, name="A1")],
-                         tags="spl,mobile,app,android",
-                         publication_type=PublicationType.JOURNAL_ARTICLE)
+    ds1_meta = MagicMock(
+        spec=DSMetaData,
+        authors=[MagicMock(spec=Author, id=1, name="A1")],
+        tags="spl,mobile,app,android",
+        publication_type=PublicationType.JOURNAL_ARTICLE,
+    )
     ds1 = MagicMock(spec=DataSet, id=11, created_at=datetime(2023, 1, 1))
     ds1.ds_meta_data = ds1_meta
     ds1.get_authors_set.return_value = ds1.ds_meta_data.authors
-    ds1.get_tags_set.return_value = set(ds1.ds_meta_data.tags.split(','))
+    ds1.get_tags_set.return_value = set(ds1.ds_meta_data.tags.split(","))
     ds1.get_publication_type.return_value = ds1.ds_meta_data.publication_type
     ds1.get_download_count.return_value = 5
 
-    ds2_meta = MagicMock(spec=DSMetaData,
-                         authors=[MagicMock(spec=Author, id=3, name="A3")],
-                         tags="game,puzzle",
-                         publication_type=PublicationType.BOOK)
-    ds2 = MagicMock(spec=DataSet, id=12, created_at=datetime.now(timezone.utc) - timedelta(days=1))
+    ds2_meta = MagicMock(
+        spec=DSMetaData,
+        authors=[MagicMock(spec=Author, id=3, name="A3")],
+        tags="game,puzzle",
+        publication_type=PublicationType.BOOK,
+    )
+    ds2 = MagicMock(
+        spec=DataSet, id=12, created_at=datetime.now(timezone.utc) - timedelta(days=1)
+    )
     ds2.ds_meta_data = ds2_meta
     ds2.get_authors_set.return_value = ds2.ds_meta_data.authors
-    ds2.get_tags_set.return_value = set(ds2.ds_meta_data.tags.split(','))
+    ds2.get_tags_set.return_value = set(ds2.ds_meta_data.tags.split(","))
     ds2.get_publication_type.return_value = ds2.ds_meta_data.publication_type
     ds2.get_download_count.return_value = 1000
 
-    ds3_meta = MagicMock(spec=DSMetaData,
-                         authors=[MagicMock(spec=Author, id=2, name="A2")],
-                         tags="spl,analysis",
-                         publication_type=PublicationType.CONFERENCE_PAPER)
-    ds3 = MagicMock(spec=DataSet, id=13, created_at=datetime.now(timezone.utc) - timedelta(days=30))
+    ds3_meta = MagicMock(
+        spec=DSMetaData,
+        authors=[MagicMock(spec=Author, id=2, name="A2")],
+        tags="spl,analysis",
+        publication_type=PublicationType.CONFERENCE_PAPER,
+    )
+    ds3 = MagicMock(
+        spec=DataSet, id=13, created_at=datetime.now(timezone.utc) - timedelta(days=30)
+    )
     ds3.ds_meta_data = ds3_meta
     ds3.get_authors_set.return_value = ds3.ds_meta_data.authors
-    ds3.get_tags_set.return_value = set(ds3.ds_meta_data.tags.split(','))
+    ds3.get_tags_set.return_value = set(ds3.ds_meta_data.tags.split(","))
     ds3.get_publication_type.return_value = ds3.ds_meta_data.publication_type
     ds3.get_download_count.return_value = 350
 
     return [ds1, ds2, ds3]
 
 
-@patch('app.modules.dataset.models.DataSet.calculate_similarity_score', autospec=True)
-@patch('app.modules.dataset.models.DataSet.query', new_callable=MagicMock)
+@patch("app.modules.dataset.models.DataSet.calculate_similarity_score", autospec=True)
+@patch("app.modules.dataset.models.DataSet.query", new_callable=MagicMock)
 def test_recommendations_prioritize_high_score_and_downloads(
     mock_dataset_query,
     mock_similarity_score,
     dataset_service,
     mock_dataset_with_data,
-    mock_all_datasets_query
+    mock_all_datasets_query,
 ):
     mock_dataset_query.filter.return_value = mock_dataset_query
     mock_dataset_query.all.return_value = mock_all_datasets_query
@@ -687,7 +705,7 @@ def test_recommendations_prioritize_high_score_and_downloads(
     ds1_base_score = 40
     ds2_base_score = 10
     ds3_base_score = 30
-   
+
     def side_effect(self, other_dataset):
         if other_dataset.id == 11:
             return ds1_base_score
@@ -696,8 +714,11 @@ def test_recommendations_prioritize_high_score_and_downloads(
         if other_dataset.id == 13:
             return ds3_base_score
         return 0
+
     mock_similarity_score.side_effect = side_effect
-    recommendations = dataset_service.get_dataset_recommendations(mock_dataset_with_data, limit=3)
+    recommendations = dataset_service.get_dataset_recommendations(
+        mock_dataset_with_data, limit=3
+    )
 
     assert len(recommendations) == 3
     assert recommendations[0].id == 12
@@ -705,49 +726,51 @@ def test_recommendations_prioritize_high_score_and_downloads(
     assert recommendations[2].id == 11
 
 
-@patch('app.modules.dataset.models.DataSet.calculate_similarity_score', autospec=True)
-@patch('app.modules.dataset.models.DataSet.query', new_callable=MagicMock)
+@patch("app.modules.dataset.models.DataSet.calculate_similarity_score", autospec=True)
+@patch("app.modules.dataset.models.DataSet.query", new_callable=MagicMock)
 def test_recommendations_returns_random_3__if_no_match(
     mock_dataset_query,
     mock_similarity_score,
     dataset_service,
     mock_dataset_with_data,
-    mock_all_datasets_query
+    mock_all_datasets_query,
 ):
     mock_dataset_query.filter.return_value = mock_dataset_query
     mock_dataset_query.all.return_value = mock_all_datasets_query
     mock_similarity_score.return_value = 0
-    recommendations = dataset_service.get_dataset_recommendations(mock_dataset_with_data, limit=3)
+    recommendations = dataset_service.get_dataset_recommendations(
+        mock_dataset_with_data, limit=3
+    )
     assert len(recommendations) == 3
 
 
-@patch('app.modules.dataset.models.DataSet.calculate_similarity_score', autospec=True)
-@patch('app.modules.dataset.models.DataSet.query', new_callable=MagicMock)
+@patch("app.modules.dataset.models.DataSet.calculate_similarity_score", autospec=True)
+@patch("app.modules.dataset.models.DataSet.query", new_callable=MagicMock)
 def test_recommendations_respects_limit(
     mock_dataset_query,
     mock_similarity_score,
     dataset_service,
     mock_dataset_with_data,
-    mock_all_datasets_query
+    mock_all_datasets_query,
 ):
-
     mock_dataset_query.filter.return_value = mock_dataset_query
     mock_dataset_query.all.return_value = mock_all_datasets_query
     mock_similarity_score.return_value = 10
-    recommendations = dataset_service.get_dataset_recommendations(mock_dataset_with_data, limit=2)
+    recommendations = dataset_service.get_dataset_recommendations(
+        mock_dataset_with_data, limit=2
+    )
     assert len(recommendations) == 2
 
 
-@patch('app.modules.dataset.models.DataSet.calculate_similarity_score', autospec=True)
-@patch('app.modules.dataset.models.DataSet.query', new_callable=MagicMock)
+@patch("app.modules.dataset.models.DataSet.calculate_similarity_score", autospec=True)
+@patch("app.modules.dataset.models.DataSet.query", new_callable=MagicMock)
 def test_recommendations_excludes_target_dataset(
-    mock_dataset_query,
-    mock_similarity_score,
-    dataset_service,
-    mock_dataset_with_data
+    mock_dataset_query, mock_similarity_score, dataset_service, mock_dataset_with_data
 ):
     mock_dataset_query.filter.return_value = mock_dataset_query
     mock_dataset_query.all.return_value = [mock_dataset_with_data]
     mock_dataset_query.filter.return_value.all.return_value = []
-    recommendations = dataset_service.get_dataset_recommendations(mock_dataset_with_data, limit=5)
+    recommendations = dataset_service.get_dataset_recommendations(
+        mock_dataset_with_data, limit=5
+    )
     assert len(recommendations) == 0
