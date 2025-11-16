@@ -285,11 +285,11 @@
                                     </button>
                                     <ul class="dropdown-menu" aria-labelledby="btnGroupDrop{{ file.id }}">
                                         <li>
-                                            <a class="dropdown-item" href="javascript:void(0);" onclick="checkUVL('{{ file.id }}')">Syntax check</a>
+                                            <a class="dropdown-item" href="javascript:void(0);" onclick="checkPIX('{{ file.id }}')">Syntax check</a>
                                         </li>
                                         <!--
                                         <li>
-                                            <a class="dropdown-item" href="{{ url_for('flamapy.valid', file_id=file.id) }}">SAT validity check</a>
+                                            <a class="dropdown-item" href="{{ url_for('pixchecker.valid', file_id=file.id) }}">SAT validity check</a>
                                         </li>
                                         -->
                                     </ul>
@@ -297,25 +297,12 @@
                                 
                                 <div class="btn-group" role="group">
                                     <button id="btnGroupDropExport{{ file.id }}" type="button" class="btn btn-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" style=" border-radius: 5px;">
-                                        <i data-feather="download"></i> Export
+                                        <i data-feather="download"></i> Download
                                     </button>
                                     <ul class="dropdown-menu" aria-labelledby="btnGroupDropExport{{ file.id }}">
                                         <li>
                                             <a class="dropdown-item" href="{{ url_for('hubfile.download_file', file_id=file.id) }}">
-                                                UVL
-                                            </a>
-                                            <a class="dropdown-item" href="{{ url_for('flamapy.to_glencoe', file_id=file.id) }}">
-                                                Glencoe
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item" href="{{ url_for('flamapy.to_cnf', file_id=file.id) }}">
-                                                DIMACS
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item" href="{{ url_for('flamapy.to_splot', file_id=file.id) }}">
-                                                SPLOT
+                                                PIX
                                             </a>
                                         </li>
                                     </ul>
@@ -398,11 +385,11 @@
         document.getElementById("loading").style.display = "none";
     }
 
-    function checkUVL(file_id) {
+    function checkPIX(file_id) {
     const outputDiv = document.getElementById('check_' + file_id);
     outputDiv.innerHTML = ''; // Clear previous output
 
-    fetch(`/flamapy/check_uvl/${file_id}`)
+    fetch(`/pixchecker/check_pix/${file_id}`)
         .then(response => {
             return response.json().then(data => ({
                 status: response.status,

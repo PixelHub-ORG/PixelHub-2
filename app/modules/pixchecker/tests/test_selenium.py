@@ -5,7 +5,7 @@ from core.environment.host import get_host_for_selenium_testing
 from core.selenium.common import initialize_driver, close_driver
 
 
-def test_basedataset_index():
+def test_pixchecker_index():
 
     driver = initialize_driver()
 
@@ -13,7 +13,7 @@ def test_basedataset_index():
         host = get_host_for_selenium_testing()
 
         # Open the index page
-        driver.get(f'{host}/basedataset')
+        driver.get(f'{host}/pixchecker')
 
         # Wait a little while to make sure the page has loaded completely
         time.sleep(4)
@@ -32,4 +32,4 @@ def test_basedataset_index():
 
 
 # Call the test function
-test_basedataset_index()
+test_pixchecker_index()

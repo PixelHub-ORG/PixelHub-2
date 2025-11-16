@@ -1,7 +1,7 @@
 from core.seeders.BaseSeeder import BaseSeeder
 
 
-class FlamapySeeder(BaseSeeder):
+class PixcheckerSeeder(BaseSeeder):
 
     def run(self):
 
