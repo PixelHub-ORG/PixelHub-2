@@ -26,11 +26,11 @@ class ZenodoService(BaseService):
         ZENODO_API_URL = ""
 
         if FLASK_ENV == "development":
-            ZENODO_API_URL = os.getenv("FAKENODO_URL", "http://localhost:5001/api")
+            ZENODO_API_URL = os.getenv("FAKENODO_BACKEND_URL", "http://localhost:5001/api")
         elif FLASK_ENV == "production":
-            ZENODO_API_URL = os.getenv("FAKENODO_URL", "http://localhost:5001/api")
+            ZENODO_API_URL = os.getenv("FAKENODO_URL", "https://pixelhub-2-51iz.onrender.com/api/")
         else:
-            ZENODO_API_URL = os.getenv("FAKENODO_URL", "http://localhost:5001/api")
+            ZENODO_API_URL = os.getenv("FAKENODO_BACKEND_URL", "http://localhost:5001/api")
 
         return ZENODO_API_URL
 
