@@ -4,6 +4,7 @@ from flask_login import current_user, login_user
 
 from app.modules.auth.models import User
 from app.modules.auth.repositories import UserRepository
+from app.modules.cart.models import Cart
 from app.modules.profile.models import UserProfile
 from app.modules.profile.repositories import UserProfileRepository
 from core.configuration.configuration import uploads_folder_name
@@ -80,6 +81,7 @@ class AuthenticationService(BaseService):
             user_data = {"orcid_id": orcid_id}
             user = User(**user_data)
             self.repository.session.add(user)
+            self.repository.session.add(Cart(user=user))
             self.repository.session.flush()
 
             profile_data = {"name": name, "surname": surname, "user_id": user.id}
