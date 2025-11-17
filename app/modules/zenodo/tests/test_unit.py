@@ -154,7 +154,7 @@ def test_service_get_zenodo_url_uses_fakenodo_env_var(test_client, mocker):
     def mock_getenv_side_effect(key, default=None):
         if key == "FLASK_ENV":
             return "development"  # Simula entorno de desarrollo
-        if key == "FAKENODO_URL":
+        if key == "FAKENODO_BACKEND_URL":
             return test_fakenodo_url  # Simula que la variable SÍ está definida
         return default
 
