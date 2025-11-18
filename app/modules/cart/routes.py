@@ -129,7 +129,7 @@ def download_cart():
                 existe = os.path.exists(file_path)
                 print(f"DEBUG: Buscando archivo: {file_path}")
                 print(f"DEBUG: ¿Existe?: {existe}")
-                
+
                 if os.path.exists(file_path):
                     zipf.write(file_path, arcname=filename)
                 else:
