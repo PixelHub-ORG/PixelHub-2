@@ -6,6 +6,12 @@ from app.modules.cart.forms import CartCreateDatasetForm
 from app.modules.cart.services import CartService
 from app.modules.featuremodel.services import FeatureModelService
 
+import os
+import tempfile
+import zipfile
+from datetime import datetime
+from flask import send_from_directory
+
 cart_service = CartService()
 fm_service = FeatureModelService()
 
@@ -86,3 +92,52 @@ def create_dataset():
                 }
             )
     return render_template("cart/create_dataset.html", form=form, models=models)
+
+
+@cart_bp.route("/user/cart/download", methods=["GET"])
+@login_required
+def download_cart():
+    cart_items = cart_service.view_cart(current_user.id)
+
+    if not cart_items:
+        return jsonify({"message": "Cart is empty"}), 400
+
+    temp_dir = tempfile.mkdtemp()
+    zip_filename = f"cart_download_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
+    zip_path = os.path.join(temp_dir, zip_filename)
+
+    working_dir = os.getenv("WORKING_DIR", "")
+    print(f"DEBUG: Working DIR: '{working_dir}'")
+    print(f"DEBUG: Directorio Actual (getcwd): '{os.getcwd()}'")
+
+    with zipfile.ZipFile(zip_path, 'w') as zipf:
+        for item in cart_items:
+            feature_model = fm_service.get_by_id(item["feature_model_id"])
+            if feature_model:
+                user_id = feature_model.data_set.user_id
+                dateset_id = feature_model.data_set_id
+                filename = feature_model.fm_meta_data.uvl_filename
+
+                file_path = os.path.join(
+                    working_dir,
+                    "uploads",
+                    f"user_{user_id}",
+                    f"dataset_{dateset_id}",
+                    filename
+                )
+
+                existe = os.path.exists(file_path)
+                print(f"DEBUG: Buscando archivo: {file_path}")
+                print(f"DEBUG: ¿Existe?: {existe}")
+                
+                if os.path.exists(file_path):
+                    zipf.write(file_path, arcname=filename)
+                else:
+                    print("DEBUG: ¡ERROR! El archivo no está donde debería.")
+
+    return send_from_directory(
+        temp_dir,
+        zip_filename,
+        as_attachment=True,
+        mimetype="application/zip"
+    )
