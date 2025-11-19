@@ -165,7 +165,7 @@ class PixDataset(BaseDataSet):
         return f"{base_url}/api/depositions/{self.ds_meta_data.deposition_id}"
 
     def get_files_count(self):
-        return sum(len(fm.files) for fm in self.feature_models)
+        return sum(len(fm.files) for fm in self.file_models)
 
     def get_file_total_size(self):
         return sum(file.size for fm in self.file_models for file in fm.files)

@@ -87,7 +87,7 @@
     });
 
     function addCart(modelId) {
-        fetch("/featuremodel/cart/add", {
+        fetch("/filemodel/cart/add", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ item_id: modelId })

@@ -234,7 +234,7 @@
                 <h3> Related publication </h3>
                 
                 David Romero-Organvidez, José A. Galindo, Chico Sundermann, Jose-Miguel Horcas, David Benavides,
-                <i>UVLHub: A feature model data repository using UVL and open science principles</i>,
+                <i>UVLHub: A file model data repository using UVL and open science principles</i>,
                 Journal of Systems and Software,
                 2024,
                 112150,
@@ -316,7 +316,7 @@
                                     <i data-feather="eye"></i> View
                                 </button>
                                 <button 
-                                    onclick="addCart('{{ feature_model.id }}')"  
+                                    onclick="addCart('{{ file_model.id }}')"  
                                     class="btn btn-outline-success btn-sm"
                                     style="border-radius: 5px;">
                                     <i data-feather="plus"></i> Add
@@ -418,7 +418,7 @@
     }
 
     function addCart(modelId) {
-        fetch("/featuremodel/cart/add", {
+        fetch("/filemodel/cart/add", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ item_id: modelId })

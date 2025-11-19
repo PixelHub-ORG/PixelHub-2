@@ -4,7 +4,7 @@ from app import db
 from app.modules.auth.models import User
 from app.modules.conftest import login, logout
 from app.modules.dataset.models import DataSet, DSMetaData, PublicationType
-from app.modules.featuremodel.models import FeatureModel, FMMetaData
+from app.modules.filemodel.models import FileModel, FMMetaData
 from app.modules.profile.models import UserProfile
 
 
@@ -37,7 +37,7 @@ def test_client_with_user(test_client):
 @pytest.fixture(scope="module")
 def setup_user_and_model(test_client_with_user):
     """
-    Creates a user and a test FeatureModel.
+    Creates a user and a test FileModel.
     Returns (test_client, fm_id, user_email, dummy_ds_id).
     """
     test_client = test_client_with_user
@@ -59,27 +59,27 @@ def setup_user_and_model(test_client_with_user):
         dummy_ds_id = dummy_dataset.id
 
         fm_meta_data = FMMetaData(
-            uvl_filename="test_fm.uvl",
-            title="Test Feature Model for Cart",
-            description="A feature model for cart testing.",
+            filename="test_fm.uvl",
+            title="Test File Model for Cart",
+            description="A file model for cart testing.",
             publication_type=PublicationType.JOURNAL_ARTICLE,
         )
         db.session.add(fm_meta_data)
         db.session.commit()
 
-        test_feature_model = FeatureModel(
+        test_file_model = FileModel(
             data_set_id=dummy_dataset.id,
             fm_meta_data_id=fm_meta_data.id,
         )
-        db.session.add(test_feature_model)
+        db.session.add(test_file_model)
         db.session.commit()
-        fm_id = test_feature_model.id
+        fm_id = test_file_model.id
 
     yield test_client, fm_id, user_email, dummy_ds_id
 
     with test_client.application.app_context():
         if fm_id:
-            FeatureModel.query.filter_by(id=fm_id).delete()
+            FileModel.query.filter_by(id=fm_id).delete()
         if dummy_ds_id:
             DataSet.query.filter_by(id=dummy_ds_id).delete()
         db.session.commit()
@@ -110,30 +110,30 @@ def test_create_dataset_from_empty_cart_returns_400(setup_user_and_model):
     logout(test_client)
 
 
-def test_add_nonexistent_feature_model_to_cart_returns_404(setup_user_and_model):
+def test_add_nonexistent_file_model_to_cart_returns_404(setup_user_and_model):
     """
-    Attempt to add a FeatureModel ID that doesn't exist.
+    Attempt to add a FileModel ID that doesn't exist.
     """
     test_client, _, user_email, _ = setup_user_and_model
     login(test_client, user_email, "test1234")
 
     non_existent_id = 999999
 
-    response = test_client.post("/featuremodel/cart/add", json={"item_id": non_existent_id})
+    response = test_client.post("/filemodel/cart/add", json={"item_id": non_existent_id})
 
     assert response.status_code in [404, 400], "Expected 404/400 for nonexistent FM."
 
     logout(test_client)
 
 
-def test_remove_feature_model_from_cart_success(setup_user_and_model):
+def test_remove_file_model_from_cart_success(setup_user_and_model):
     """
-    Add a FeatureModel and then remove it.
+    Add a FileModel and then remove it.
     """
     test_client, fm_id, user_email, _ = setup_user_and_model
     login(test_client, user_email, "test1234")
 
-    test_client.post("/featuremodel/cart/add", json={"item_id": fm_id})
+    test_client.post("/filemodel/cart/add", json={"item_id": fm_id})
 
     response = test_client.post("/user/cart/delete", json={"item_id": fm_id})
     assert response.status_code == 200, "Expected 200 upon removal from cart."
@@ -146,7 +146,7 @@ def setup_cart_and_login(test_client, fm_id, user_email):
     Helper function to ensure the cart is full and the user is logged in.
     """
     login(test_client, user_email, "test1234")
-    test_client.post("/featuremodel/cart/add", json={"item_id": fm_id})
+    test_client.post("/filemodel/cart/add", json={"item_id": fm_id})
 
 
 def test_create_dataset_missing_required_fields_returns_400(setup_user_and_model):

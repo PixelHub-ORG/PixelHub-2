@@ -10,4 +10,4 @@ class Cart(db.Model):
 class CartItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     cart_id = db.Column(db.Integer, db.ForeignKey("cart.id"), nullable=False)
-    feature_model_id = db.Column(db.Integer, db.ForeignKey("feature_model.id"), nullable=False)
+    file_model_id = db.Column(db.Integer, db.ForeignKey("file_model.id"), nullable=False)

@@ -395,7 +395,7 @@ def test_service_upload_file(mock_service):
     # Creamos mocks para los modelos
     mock_dataset = MagicMock(id=1)
     mock_fm = MagicMock()
-    mock_fm.fm_meta_data.uvl_filename = "test.uvl"
+    mock_fm.fm_meta_data.filename = "test.uvl"
     mock_user = MagicMock(id=1)
 
     # Caso 1: Éxito (con user=None, usa current_user)

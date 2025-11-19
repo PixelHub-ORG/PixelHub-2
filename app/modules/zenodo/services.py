@@ -196,8 +196,8 @@ class ZenodoService(BaseService):
 
         Args:
             deposition_id (int): The ID of the deposition in Zenodo.
-            feature_model (FeatureModel): The FeatureModel object representing the feature model.
-            user (FeatureModel): The User object representing the file owner.
+            file_model (FileModel): The FileModel object representing the file model.
+            user (FileModel): The User object representing the file owner.
 
         Returns:
             dict: The response in JSON format with the details of the uploaded file.

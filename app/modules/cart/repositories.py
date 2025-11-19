@@ -32,11 +32,11 @@ class CartItemRepository(BaseRepository):
     def __init__(self):
         super().__init__(CartItem)
 
-    def find_by_cart_and_model(self, cart_id: int, feature_model_id: int) -> CartItem | None:
-        return self.model.query.filter_by(cart_id=cart_id, feature_model_id=feature_model_id).first()
+    def find_by_cart_and_model(self, cart_id: int, file_model_id: int) -> CartItem | None:
+        return self.model.query.filter_by(cart_id=cart_id, file_model_id=file_model_id).first()
 
     def add_item(self, cart_id: int, item_id: int) -> CartItem:
-        new_item = CartItem(cart_id=cart_id, feature_model_id=item_id)
+        new_item = CartItem(cart_id=cart_id, file_model_id=item_id)
         self.session.add(new_item)
         self.session.commit()
         return new_item

@@ -16,7 +16,10 @@ class User(db.Model, UserMixin):
 
     created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     cart = db.relationship("Cart", backref="user", uselist=False, cascade="all, delete-orphan")
-    data_sets = db.relationship("DataSet", backref="user")
+    data_sets = db.relationship(
+        "app.modules.dataset.models.PixDataset",
+        backref="user",
+    )
     profile = db.relationship("UserProfile", backref="user", uselist=False)
 
     def __init__(self, **kwargs):

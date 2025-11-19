@@ -2,7 +2,7 @@ from app import db
 from app.modules.auth.services import AuthenticationService
 from app.modules.cart.repositories import CartItemRepository, CartRepository
 from app.modules.dataset.services import DataSetService
-from app.modules.featuremodel.models import FeatureModel
+from app.modules.filemodel.models import FileModel
 from app.modules.hubfile.models import Hubfile
 from core.services.BaseService import BaseService
 
@@ -27,7 +27,7 @@ class CartService(BaseService):
 
     def view_cart(self, user_id: int):
         cart_items = self.cart_repository.get_cart_items(user_id)
-        return [{"cart_item_id": item.id, "feature_model_id": item.feature_model_id} for item in cart_items]
+        return [{"cart_item_id": item.id, "file_model_id": item.file_model_id} for item in cart_items]
 
     def delete_from_cart(self, user_id: int, item_id: int = None):
         cart = self.cart_repository.get_cart_by_user_id(user_id)
@@ -51,16 +51,16 @@ class CartService(BaseService):
         if not user or user.id != user_id:
             return {"message": "User not authenticated."}, 401
 
-        form.feature_models = []
+        form.file_models = []
 
         dataset = self.dataset_service.create_from_form(form, user)
         if not dataset:
             return {"message": "Error creating dataset."}, 500
 
         for item in cart.items:
-            orig_fm = item.feature_model
+            orig_fm = item.file_model
 
-            new_fm = FeatureModel(
+            new_fm = FileModel(
                 data_set_id=dataset.id,
                 fm_meta_data_id=orig_fm.fm_meta_data_id,
             )
@@ -70,10 +70,10 @@ class CartService(BaseService):
                 clone_data = {
                     col.name: getattr(file, col.name)
                     for col in file.__table__.columns
-                    if col.name not in ("id", "feature_model_id")
+                    if col.name not in ("id", "file_model_id")
                 }
                 new_file = Hubfile(**clone_data)
-                new_file.feature_model = new_fm
+                new_file.file_model = new_fm
                 db.session.add(new_file)
 
         db.session.commit()

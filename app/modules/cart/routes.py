@@ -9,10 +9,10 @@ from flask_login import current_user, login_required
 from app.modules.cart import cart_bp
 from app.modules.cart.forms import CartCreateDatasetForm
 from app.modules.cart.services import CartService
-from app.modules.featuremodel.services import FeatureModelService
+from app.modules.filemodel.services import FilemodelService
 
 cart_service = CartService()
-fm_service = FeatureModelService()
+fm_service = FilemodelService()
 
 
 @cart_bp.route("/user/cart/view_page", methods=["GET"])
@@ -22,12 +22,12 @@ def view_cart_page():
     models = []
 
     for item in cart_items:
-        feature_model = fm_service.get_by_id(item["feature_model_id"])
-        if feature_model:
-            fm_meta = feature_model.fm_meta_data
+        file_model = fm_service.get_by_id(item["file_model_id"])
+        if file_model:
+            fm_meta = file_model.fm_meta_data
             models.append(
                 {
-                    "id": feature_model.id,
+                    "id": file_model.id,
                     "name": fm_meta.title if fm_meta else "No title",
                     "description": fm_meta.description if fm_meta else "",
                     "authors": fm_meta.authors if fm_meta else [],
@@ -44,7 +44,7 @@ def cart_count():
     return jsonify({"count": len(cart_items)})
 
 
-@cart_bp.route("/featuremodel/cart/add", methods=["POST"])
+@cart_bp.route("/filemodel/cart/add", methods=["POST"])
 @login_required
 def add_to_cart():
     data = request.get_json()
@@ -79,12 +79,12 @@ def create_dataset():
 
     cart_items = cart_service.view_cart(current_user.id)
     for item in cart_items:
-        feature_model = fm_service.get_by_id(item["feature_model_id"])
-        if feature_model:
-            fm_meta = feature_model.fm_meta_data
+        file_model = fm_service.get_by_id(item["file_model_id"])
+        if file_model:
+            fm_meta = file_model.fm_meta_data
             models.append(
                 {
-                    "id": feature_model.id,
+                    "id": file_model.id,
                     "name": fm_meta.title if fm_meta else "No title",
                     "description": fm_meta.description if fm_meta else "",
                     "authors": fm_meta.authors if fm_meta else [],
@@ -111,11 +111,11 @@ def download_cart():
 
     with zipfile.ZipFile(zip_path, 'w') as zipf:
         for item in cart_items:
-            feature_model = fm_service.get_by_id(item["feature_model_id"])
-            if feature_model:
-                user_id = feature_model.data_set.user_id
-                dateset_id = feature_model.data_set_id
-                filename = feature_model.fm_meta_data.uvl_filename
+            file_model = fm_service.get_by_id(item["file_model_id"])
+            if file_model:
+                user_id = file_model.data_set.user_id
+                dateset_id = file_model.data_set_id
+                filename = file_model.fm_meta_data.filename
 
                 file_path = os.path.join(
                     working_dir,
