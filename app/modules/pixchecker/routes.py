@@ -1,8 +1,9 @@
-from flask import jsonify
 import re
 
-from app.modules.pixchecker import pixchecker_bp
+from flask import jsonify
+
 from app.modules.hubfile.services import HubfileService
+from app.modules.pixchecker import pixchecker_bp
 
 
 @pixchecker_bp.route('/pixchecker/check_pix/<int:file_id>', methods=['GET'])

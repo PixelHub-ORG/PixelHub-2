@@ -5,6 +5,7 @@ from typing import Optional
 from flask_login import current_user
 from sqlalchemy import desc, func
 
+from app import db
 from app.modules.dataset.models import (
     Author,
     DataSet,
@@ -14,8 +15,6 @@ from app.modules.dataset.models import (
     DSViewRecord,
 )
 from core.repositories.BaseRepository import BaseRepository
-from app import db
-
 
 logger = logging.getLogger(__name__)
 

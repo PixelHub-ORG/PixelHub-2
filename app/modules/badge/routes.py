@@ -1,4 +1,5 @@
 from flask import Blueprint, Response, url_for
+
 from ..dataset.models import DataSet
 
 badge_bp = Blueprint("badge", __name__)

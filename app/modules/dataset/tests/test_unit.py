@@ -2,17 +2,18 @@ import io
 import os
 import shutil
 import tempfile
-import pytest
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
-from flask_login import LoginManager
+
+import pytest
 from flask import Flask
-from datetime import datetime, timezone, timedelta
-from app.modules.dataset.services import DataSetService
-from app.modules.dataset.repositories import DSDownloadRecordRepository
-from app.modules.dataset.models import DataSet, DSMetaData, Author, PublicationType
-from app.modules.dataset.services import DSDownloadRecordService
-from app.modules.dataset import dataset_bp
+from flask_login import LoginManager
+
 from app.modules.badge.routes import badge_bp, make_segment
+from app.modules.dataset import dataset_bp
+from app.modules.dataset.models import Author, DataSet, DSMetaData, PublicationType
+from app.modules.dataset.repositories import DSDownloadRecordRepository
+from app.modules.dataset.services import DataSetService, DSDownloadRecordService
 
 FIXED_TIME = datetime(2025, 12, 1, 15, 0, 0, tzinfo=timezone.utc)
 
