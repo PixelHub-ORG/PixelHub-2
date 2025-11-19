@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from enum import Enum
 
@@ -105,13 +106,6 @@ class BaseDataSet(db.Model):
             return len(self.files())
         return 1  # By default, datasets have at least one file
 
-    def get_zenodo_url(self):
-        return (
-            f"https://zenodo.org/record/{self.ds_meta_data.deposition_id}"
-            if self.ds_meta_data.dataset_doi
-            else None
-        )
-
     def get_download_count(self):
         return db.session.query(DSDownloadRecord).filter_by(dataset_id=self.id).count()
 
@@ -159,6 +153,19 @@ class PixDataset(BaseDataSet):
     def delete(self):
         db.session.delete(self)
         db.session.commit()
+
+    def get_cleaned_publication_type(self):
+        return self.ds_meta_data.publication_type.name.replace("_", " ").title()
+
+    def get_zenodo_url(self):
+        if not self.ds_meta_data.dataset_doi:
+            return None
+
+        base_url = os.getenv("FAKENODO_URL", "https://zenodo.org")  # valor por defecto
+        return f"{base_url}/api/depositions/{self.ds_meta_data.deposition_id}"
+
+    def get_files_count(self):
+        return sum(len(fm.files) for fm in self.feature_models)
 
     def get_file_total_size(self):
         return sum(file.size for fm in self.file_models for file in fm.files)

@@ -1,16 +1,15 @@
-"""empty message
+"""Initial migration trying to fix
 
-Revision ID: 001
+Revision ID: c50fd5b5a1b5
 Revises: 
-Create Date: 2025-11-18 09:26:30.586156
+Create Date: 2025-11-12 22:25:10.576513
 
 """
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = '001'
+revision = 'c50fd5b5a1b5'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -38,14 +37,27 @@ def upgrade():
     )
     op.create_table('user',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('email', sa.String(length=256), nullable=False),
-    sa.Column('password', sa.String(length=256), nullable=False),
+    sa.Column('email', sa.String(length=256), nullable=True),
+    sa.Column('password', sa.String(length=256), nullable=True),
+    sa.Column('orcid_id', sa.String(length=32), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('email')
     )
+    with op.batch_alter_table('user', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_user_orcid_id'), ['orcid_id'], unique=True)
+    op.create_table('webhook',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.PrimaryKeyConstraint('id')
+    )
     op.create_table('zenodo',
     sa.Column('id', sa.Integer(), nullable=False),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('cart',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('ds_meta_data',
@@ -137,9 +149,12 @@ def upgrade():
     sa.ForeignKeyConstraint(['fm_meta_data_id'], ['fm_meta_data.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('pix_data_set',
+    op.create_table('cart_item',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['id'], ['data_set.id'], ),
+    sa.Column('cart_id', sa.Integer(), nullable=False),
+    sa.Column('feature_model_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['cart_id'], ['cart.id'], ),
+    sa.ForeignKeyConstraint(['feature_model_id'], ['feature_model.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('file',
@@ -188,8 +203,8 @@ def downgrade():
     op.drop_table('file_download_record')
     op.drop_table('pix_meta_data')
     op.drop_table('file')
-    op.drop_table('pix_data_set')
-    op.drop_table('file_model')
+    op.drop_table('cart_item')
+    op.drop_table('feature_model')
     op.drop_table('ds_view_record')
     op.drop_table('ds_download_record')
     with op.batch_alter_table('data_set', schema=None) as batch_op:
@@ -200,7 +215,11 @@ def downgrade():
     op.drop_table('user_profile')
     op.drop_table('fm_meta_data')
     op.drop_table('ds_meta_data')
+    op.drop_table('cart')
     op.drop_table('zenodo')
+    with op.batch_alter_table('user', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_user_orcid_id'))
+    op.drop_table('webhook')
     op.drop_table('user')
     op.drop_table('fm_metrics')
     op.drop_table('ds_metrics')
