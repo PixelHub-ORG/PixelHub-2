@@ -29,8 +29,8 @@ class AuthorForm(FlaskForm):
         }
 
 
-class FeatureModelForm(FlaskForm):
-    uvl_filename = StringField("UVL Filename", validators=[DataRequired()])
+class FileModelForm(FlaskForm):
+    filename = StringField("Filename", validators=[DataRequired()])
     title = StringField("Title", validators=[Optional()])
     desc = TextAreaField("Description", validators=[Optional()])
     publication_type = SelectField(
@@ -40,7 +40,6 @@ class FeatureModelForm(FlaskForm):
     )
     publication_doi = StringField("Publication DOI", validators=[Optional(), URL()])
     tags = StringField("Tags (separated by commas)")
-    version = StringField("UVL Version")
     authors = FieldList(FormField(AuthorForm))
 
     class Meta:
@@ -50,14 +49,21 @@ class FeatureModelForm(FlaskForm):
         return [author.get_author() for author in self.authors]
 
     def get_fmmetadata(self):
+        publication_type_value = self.publication_type.data
+        # Convert the select field value (which is the Enum.value) to the Enum.name
+        publication_type_converted = "NONE"
+        for pt in PublicationType:
+            if pt.value == publication_type_value:
+                publication_type_converted = pt.name
+                break
+
         return {
-            "uvl_filename": self.uvl_filename.data,
+            "filename": self.filename.data,
             "title": self.title.data,
             "description": self.desc.data,
-            "publication_type": self.publication_type.data,
+            "publication_type": publication_type_converted,
             "publication_doi": self.publication_doi.data,
             "tags": self.tags.data,
-            "uvl_version": self.version.data,
         }
 
 
@@ -73,7 +79,7 @@ class DataSetForm(FlaskForm):
     dataset_doi = StringField("Dataset DOI", validators=[Optional(), URL()])
     tags = StringField("Tags (separated by commas)")
     authors = FieldList(FormField(AuthorForm))
-    feature_models = FieldList(FormField(FeatureModelForm), min_entries=1)
+    file_models = FieldList(FormField(FileModelForm), min_entries=1)
 
     submit = SubmitField("Submit")
 
@@ -99,5 +105,5 @@ class DataSetForm(FlaskForm):
     def get_authors(self):
         return [author.get_author() for author in self.authors]
 
-    def get_feature_models(self):
-        return [fm.get_feature_model() for fm in self.feature_models]
+    def get_file_models(self):
+        return [fm.get_file_model() for fm in self.file_models]

@@ -64,11 +64,20 @@ chico sundermann">
                         </a>
                     </li>
 
-                    <li class="sidebar-item {{ 'active' if request.endpoint == 'team.index' else '' }}">
-                        <a class="sidebar-link" href="{{ url_for('team.index') }}">
-                            <i class="align-middle" data-feather="users"></i> <span class="align-middle">Team</span>
-                        </a>
-                    </li>
+                <li class="sidebar-item {{ 'active' if request.endpoint == 'team.index' else '' }}">
+                    <a class="sidebar-link" href="{{ url_for('team.index') }}">
+                        <i class="align-middle" data-feather="users"></i> <span
+                            class="align-middle">Team</span>
+                    </a>
+                </li>
+
+                <li class="sidebar-item {{ 'active' if request.endpoint == 'dataset.home_leaderboard' else '' }}">
+                    <a class="sidebar-link" href="{{ url_for('dataset.home_leaderboard') }}">
+                        <i class="align-middle" data-feather="bar-chart-2"></i> <span class="align-middle">Leaderboard</span>
+                    </a>
+                </li>
+
+
 
                     {% if current_user.is_anonymous %}
 

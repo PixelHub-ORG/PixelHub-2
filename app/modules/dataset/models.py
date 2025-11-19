@@ -45,10 +45,12 @@ class Author(db.Model):
 class DSMetrics(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     number_of_models = db.Column(db.String(120))
-    number_of_features = db.Column(db.String(120))
+    number_of_files = db.Column(db.String(120))
 
     def __repr__(self):
-        return f"DSMetrics<models={self.number_of_models}, features={self.number_of_features}>"
+        return (
+            f"DSMetrics<models={self.number_of_models}, files={self.number_of_files}>"
+        )
 
 
 class DSMetaData(db.Model):
@@ -61,25 +63,92 @@ class DSMetaData(db.Model):
     dataset_doi = db.Column(db.String(120))
     tags = db.Column(db.String(120))
     ds_metrics_id = db.Column(db.Integer, db.ForeignKey("ds_metrics.id"))
-    ds_metrics = db.relationship("DSMetrics", uselist=False, backref="ds_meta_data", cascade="all, delete")
-    authors = db.relationship("Author", backref="ds_meta_data", lazy=True, cascade="all, delete")
+    ds_metrics = db.relationship(
+        "DSMetrics", uselist=False, backref="ds_meta_data", cascade="all, delete"
+    )
+    authors = db.relationship(
+        "Author", backref="ds_meta_data", lazy=True, cascade="all, delete"
+    )
 
 
-class DataSet(db.Model):
+class BaseDataSet(db.Model):
+    __tablename__ = "data_set"
+
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
-    ds_meta_data_id = db.Column(db.Integer, db.ForeignKey("ds_meta_data.id"), nullable=False)
+    ds_meta_data_id = db.Column(
+        db.Integer, db.ForeignKey("ds_meta_data.id"), nullable=False
+    )
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
-    ds_meta_data = db.relationship("DSMetaData", backref=db.backref("data_set", uselist=False))
-    feature_models = db.relationship("FeatureModel", backref="data_set", lazy=True, cascade="all, delete")
+    ds_meta_data = db.relationship(
+        "DSMetaData", backref=db.backref("data_set", uselist=False)
+    )
+    type = db.Column(db.String(50), nullable=False, server_default="pix", index=True)
+
+    __mapper_args__ = {
+        "polymorphic_on": type,
+        "polymorphic_identity": "base",
+        "with_polymorphic": "*",
+    }
+
+    def get_cleaned_publication_type(self):
+        return self.ds_meta_data.publication_type.name.replace("_", " ").title()
+
+    def get_files_count(self):
+        """
+        Devuelve el número de archivos asociados al dataset.
+        Por defecto, los datasets tabulares tienen un único CSV.
+        """
+
+        if hasattr(self, "files") and self.files():
+            return len(self.files())
+        return 1  # By default, datasets have at least one file
+
+    def get_download_count(self):
+        return db.session.query(DSDownloadRecord).filter_by(dataset_id=self.id).count()
+
+    def get_pixelhub_doi(self):
+        from app.modules.dataset.services import DataSetService
+
+        return DataSetService().get_pixelhub_doi(
+            self
+        )  # TODO: Corregir nombre método en services
+
+    def validate_domain(self):
+        """Validates whether the metadata is valid for the current file type.
+        Needs to be implemented in subclasses.
+        """
+
+        pass
+
+    def __repr__(self):
+        return f"DataSet<{self.id}>"
+
+
+class PixDataset(BaseDataSet):
+    __mapper_args__ = {
+        "polymorphic_identity": "pix",
+    }
+    __tablename__ = "pix_data_set"
+
+    # required for joined-table inheritance: link child table PK to parent table PK
+    id = db.Column(db.Integer, db.ForeignKey("data_set.id"), primary_key=True)
+
+    pix_meta_data = db.relationship(
+        "PixMetaData", backref="dataset", uselist=False, cascade="all, delete-orphan"
+    )
+
+    file_models = db.relationship(
+        "FileModel", backref="data_set", lazy=True, cascade="all, delete"
+    )
 
     def name(self):
         return self.ds_meta_data.title
 
     def files(self):
-        return [file for fm in self.feature_models for file in fm.files]
+        return [file for fm in self.file_models for file in fm.files]
 
     def delete(self):
         db.session.delete(self)
@@ -99,17 +168,63 @@ class DataSet(db.Model):
         return sum(len(fm.files) for fm in self.feature_models)
 
     def get_file_total_size(self):
-        return sum(file.size for fm in self.feature_models for file in fm.files)
+        return sum(file.size for fm in self.file_models for file in fm.files)
 
     def get_file_total_size_for_human(self):
         from app.modules.dataset.services import SizeService
 
         return SizeService().get_human_readable_size(self.get_file_total_size())
 
-    def get_uvlhub_doi(self):
-        from app.modules.dataset.services import DataSetService
+    def validate_domain(self):
+        if self.games_count is not None and self.games_count < 0:
+            raise ValueError("games_count cannot be negative")
 
-        return DataSetService().get_uvlhub_doi(self)
+    def get_pix_path(self):
+        """Returns the pix path of the dataset if exists, else None."""
+        import os
+
+        temp_folder = self.user.temp_folder()
+        if os.path.exists(temp_folder):
+            for f in os.listdir(temp_folder):
+                if f.lower().endswith(".pix"):
+                    return os.path.join(temp_folder, f)
+        return None
+    
+    def get_authors_set(self):
+        return set(self.ds_meta_data.authors) if self.ds_meta_data.authors else set()
+    
+    def get_tags_set(self):
+        return set(self.ds_meta_data.tags.split(",")) if self.ds_meta_data.tags else set()
+    
+    def get_publication_type(self):
+        return self.ds_meta_data.publication_type
+    
+    def calculate_similarity_score(self, other_dataset):
+        # Similarity score
+        score = 0
+
+        # Increment per common author
+        self_authors = {a.id for a in self.get_authors_set()}
+        other_authors = {a.id for a in other_dataset.get_authors_set()}
+        common_authors = self_authors.intersection(other_authors)
+
+        score += len(common_authors) * 10
+
+        # Increment per common tag
+        self_tags = self.get_tags_set()
+        other_tags = other_dataset.get_tags_set()
+        common_tags = self_tags.intersection(other_tags)
+
+        score += len(common_tags) * 3
+        
+        # Increment common publication type
+        self_publication_type = self.get_publication_type()
+        other_publication_type = other_dataset.get_publication_type()
+
+        if (self_publication_type == other_publication_type):
+            score += 6
+
+        return score
 
     def to_dict(self):
         return {
@@ -123,17 +238,25 @@ class DataSet(db.Model):
             "publication_doi": self.ds_meta_data.publication_doi,
             "dataset_doi": self.ds_meta_data.dataset_doi,
             "tags": self.ds_meta_data.tags.split(",") if self.ds_meta_data.tags else [],
-            "url": self.get_uvlhub_doi(),
-            "download": f'{request.host_url.rstrip("/")}/dataset/download/{self.id}',
+            "url": self.get_pixelhub_doi(),
+            "download": f"{request.host_url.rstrip('/')}/dataset/download/{self.id}",
             "zenodo": self.get_zenodo_url(),
-            "files": [file.to_dict() for fm in self.feature_models for file in fm.files],
+            "files": [file.to_dict() for fm in self.file_models for file in fm.files],
             "files_count": self.get_files_count(),
             "total_size_in_bytes": self.get_file_total_size(),
             "total_size_in_human_format": self.get_file_total_size_for_human(),
+            "download_count": self.get_download_count(),
         }
 
-    def __repr__(self):
-        return f"DataSet<{self.id}>"
+
+class PixMetaData(db.Model):
+    __tablename__ = "pix_meta_data"
+
+    id = db.Column(db.Integer, primary_key=True)
+    games_count = db.Column(db.Integer)
+    encoding = db.Column(db.String(120))
+
+    dataset_id = db.Column(db.Integer, db.ForeignKey("pix_data_set.id"))
 
 
 class DSDownloadRecord(db.Model):
@@ -167,3 +290,6 @@ class DOIMapping(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     dataset_doi_old = db.Column(db.String(120))
     dataset_doi_new = db.Column(db.String(120))
+
+
+DataSet = PixDataset  # Backwards compatibility alias
