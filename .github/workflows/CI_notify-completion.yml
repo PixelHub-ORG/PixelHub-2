@@ -75,7 +75,7 @@ jobs:
             echo "EOF"
           } >> $GITHUB_ENV
 
-            - name: Send Discord notification
+      - name: Send Discord notification  # <-- CORRECTED INDENTATION (The hyphen is now correctly aligned)
         if: env.all_complete == 'true'
         env:
           DISCORD_WEBHOOK: ${{ secrets.NOTIFY_WEBHOOK_URL }}
@@ -111,4 +111,3 @@ jobs:
             -H "Content-Type: application/json" \
             -d "$payload" \
             "$DISCORD_WEBHOOK"
-
