@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from app.models import Deposition, File
+from app.models import Deposition
 
 
 class DepositionService:
