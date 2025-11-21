@@ -6,7 +6,7 @@ from app.modules.hubfile.services import HubfileService
 from app.modules.pixchecker import pixchecker_bp
 
 
-@pixchecker_bp.route('/pixchecker/check_pix/<int:file_id>', methods=['GET'])
+@pixchecker_bp.route("/pixchecker/check_pix/<int:file_id>", methods=["GET"])
 def check_pix(file_id):
     """Validate a simple PIX-like file syntax.
 
@@ -37,8 +37,7 @@ def check_pix(file_id):
         element_header_re = re.compile(r"^\s*(?P<name>(?:\"[^\"]*\"|'[^']*'|[^\{\s][^\{]*?))\s*\{\s*$")
         # For attributes: key can be quoted or unquoted, separator can be ':' or '=', value may be empty.
         attr_re = re.compile(
-            r"^\s*(?P<key>(?:\"[^\"]*\"|'[^']*'|[^:=\s][^:=\{]*?))"
-            r"\s*(?P<sep>[:=])\s*(?P<value>.*?)\s*$"
+            r"^\s*(?P<key>(?:\"[^\"]*\"|'[^']*'|[^:=\s][^:=\{]*?))" r"\s*(?P<sep>[:=])\s*(?P<value>.*?)\s*$"
         )
 
         def unquote_token(tok: str) -> str:
@@ -58,7 +57,7 @@ def check_pix(file_id):
         current_element = None
 
         for idx, raw in enumerate(lines, start=1):
-            line = raw.rstrip('\n')
+            line = raw.rstrip("\n")
             if state == "outside":
                 if line.strip() == "":
                     continue
@@ -106,6 +105,6 @@ def check_pix(file_id):
         return jsonify({"error": str(e)}), 500
 
 
-@pixchecker_bp.route('/pixchecker/valid/<int:file_id>', methods=['GET'])
+@pixchecker_bp.route("/pixchecker/valid/<int:file_id>", methods=["GET"])
 def valid(file_id):
     return jsonify({"success": True, "file_id": file_id})

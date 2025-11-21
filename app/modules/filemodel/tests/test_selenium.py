@@ -14,7 +14,7 @@ def test_filemodel_index():
         host = get_host_for_selenium_testing()
 
         # Open the index page
-        driver.get(f'{host}/filemodel')
+        driver.get(f"{host}/filemodel")
 
         # Wait a little while to make sure the page has loaded completely
         time.sleep(4)
@@ -24,7 +24,7 @@ def test_filemodel_index():
             pass
 
         except NoSuchElementException:
-            raise AssertionError('Test failed!')
+            raise AssertionError("Test failed!")
 
     finally:
 

@@ -54,9 +54,7 @@ class DataSetService(BaseService):
         source_dir = current_user.temp_folder()
 
         working_dir = os.getenv("WORKING_DIR", "")
-        dest_dir = os.path.join(
-            working_dir, "uploads", f"user_{current_user.id}", f"dataset_{dataset.id}"
-        )
+        dest_dir = os.path.join(working_dir, "uploads", f"user_{current_user.id}", f"dataset_{dataset.id}")
 
         os.makedirs(dest_dir, exist_ok=True)
 
@@ -66,7 +64,7 @@ class DataSetService(BaseService):
 
     def get_synchronized(self, current_user_id: int) -> DataSet:
         return self.repository.get_synchronized(current_user_id)
-    
+
     # ordenamos por descargas y si hay empate por reciente
     def get_dataset_recommendations(self, dataset, limit=5) -> DataSet:
         other_datasets = DataSet.query.filter(DataSet.id != dataset.id).all()
@@ -75,18 +73,14 @@ class DataSetService(BaseService):
             score = dataset.calculate_similarity_score(ds)
             scored_datasets.append((ds, score))
         scored_datasets_sorted = sorted(
-            scored_datasets,
-            key=lambda x: (x[1], x[0].get_download_count(), x[0].created_at),
-            reverse=True
+            scored_datasets, key=lambda x: (x[1], x[0].get_download_count(), x[0].created_at), reverse=True
         )
         return [ds for ds, _ in scored_datasets_sorted[:limit]]
-        
+
     def get_unsynchronized(self, current_user_id: int) -> DataSet:
         return self.repository.get_unsynchronized(current_user_id)
 
-    def get_unsynchronized_dataset(
-        self, current_user_id: int, dataset_id: int
-    ) -> DataSet:
+    def get_unsynchronized_dataset(self, current_user_id: int, dataset_id: int) -> DataSet:
         return self.repository.get_unsynchronized_dataset(current_user_id, dataset_id)
 
     def latest_synchronized(self):
@@ -130,40 +124,34 @@ class DataSetService(BaseService):
 
             logger.info(f"Creating dsmetadata...: {form.get_dsmetadata()}")
             dsmetadata = self.dsmetadata_repository.create(**form.get_dsmetadata())
-            
+
             for author_data in [main_author] + form.get_authors():
-                author = self.author_repository.create(
-                    commit=False, ds_meta_data_id=dsmetadata.id, **author_data
-                )
+                author = self.author_repository.create(commit=False, ds_meta_data_id=dsmetadata.id, **author_data)
                 dsmetadata.authors.append(author)
 
             target_version = 1
             target_prev_id = None
-            
+
             if parent_dataset:
                 target_version = parent_dataset.version + 1
                 target_prev_id = parent_dataset.id
-            
+
             dataset = self.create(
-                commit=False, 
-                user_id=current_user.id, 
+                commit=False,
+                user_id=current_user.id,
                 ds_meta_data_id=dsmetadata.id,
                 version=target_version,
-                previous_version_id=target_prev_id
+                previous_version_id=target_prev_id,
             )
 
             dataset.version = target_version
             dataset.previous_version_id = target_prev_id
-            
+
             for file_model in form.file_models:
                 filename = file_model.filename.data
-                fmmetadata = self.fmmetadata_repository.create(
-                    commit=False, **file_model.get_fmmetadata()
-                )
+                fmmetadata = self.fmmetadata_repository.create(commit=False, **file_model.get_fmmetadata())
                 for author_data in file_model.get_authors():
-                    author = self.author_repository.create(
-                        commit=False, fm_meta_data_id=fmmetadata.id, **author_data
-                    )
+                    author = self.author_repository.create(commit=False, fm_meta_data_id=fmmetadata.id, **author_data)
                     fmmetadata.authors.append(author)
 
                 fm = self.file_model_repository.create(
@@ -181,14 +169,14 @@ class DataSetService(BaseService):
                     file_model_id=fm.id,
                 )
                 fm.files.append(file)
-            
+
             self.repository.session.commit()
-            
+
         except Exception as exc:
             logger.exception(f"Exception creating dataset from form...: {exc}")
             self.repository.session.rollback()
             raise exc
-            
+
         return dataset
 
     def update_dsmetadata(self, id, **kwargs):
@@ -205,6 +193,37 @@ class DataSetService(BaseService):
 
         # 4. Construye la URL
         return f"{protocol}://{domain}/doi/{dataset.ds_meta_data.dataset_doi}"
+
+    def get_dataset_history(self, dataset_id: int) -> list:
+        """
+        Recupera toda la línea temporal de versiones de un dataset.
+        1. Encuentra el dataset raíz (Versión 1).
+        2. Recorre descendientemente para encontrar todas las versiones posteriores.
+        """
+        current = self.repository.get_by_id(dataset_id)
+        if not current:
+            return []
+
+        root = current
+        while root.previous_version_id is not None:
+            parent = self.repository.get_by_id(root.previous_version_id)
+            if not parent:
+                break
+            root = parent
+
+        history = [root]
+
+        queue = [root]
+
+        while queue:
+            node = queue.pop(0)
+            children = sorted(node.next_versions, key=lambda x: x.version)
+
+            for child in children:
+                history.append(child)
+                queue.append(child)
+
+        return sorted(history, key=lambda x: x.version)
 
 
 class AuthorService(BaseService):
@@ -243,9 +262,7 @@ class DSViewRecordService(BaseService):
         if not user_cookie:
             user_cookie = str(uuid.uuid4())
 
-        existing_record = self.the_record_exists(
-            dataset=dataset, user_cookie=user_cookie
-        )
+        existing_record = self.the_record_exists(dataset=dataset, user_cookie=user_cookie)
 
         if not existing_record:
             self.create_new_record(dataset=dataset, user_cookie=user_cookie)

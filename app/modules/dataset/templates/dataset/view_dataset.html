@@ -23,6 +23,22 @@
         margin-bottom: 0;
         padding-bottom: 0;
     }
+
+    .timeline-item {
+        position: relative;
+    }
+    .timeline-item:last-child {
+        border-bottom: none !important;
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
+    }
+
+    .timeline-item:last-child {
+        border-bottom: none !important;
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
+    }
+
 </style>
 {% endblock %}
 
@@ -71,17 +87,6 @@
                         <span class="badge bg-secondary">{{ dataset.get_cleaned_publication_type() }}</span>
                     </div>
                 </div>
-                
-                {% if dataset.previous_version %}
-                <div class="mb-2">
-                    <small class="text-muted">
-                        This is a new version of 
-                        <a href="{{ url_for('dataset.get_unsynchronized_dataset', dataset_id=dataset.previous_version.id) }}">
-                            {{ dataset.previous_version.ds_meta_data.title }} (v{{ dataset.previous_version.version }})
-                        </a>
-                    </small>
-                </div>
-                {% endif %}
 
                 <p class="text-secondary">{{ dataset.created_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
 
@@ -300,6 +305,44 @@
 
     <div class="col-xl-4 col-lg-12 col-md-12 col-sm-12">
 
+        {% if history and history|length > 1 %}
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Version History</h5>
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    {% for version_ds in history %}
+                    <div class="timeline-item pb-3 mb-3 border-bottom position-relative">
+                        
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div>
+                                <span class="badge {% if version_ds.id == dataset.id %}bg-primary{% else %}bg-secondary{% endif %}">
+                                    v{{ version_ds.version }}
+                                </span>
+                                <small class="text-muted ms-1">{{ version_ds.created_at.strftime('%d %b %Y') }}</small>
+                            </div>
+                            
+                            {% if version_ds.id != dataset.id %}
+                                {% if version_ds.ds_meta_data.dataset_doi %}
+                                    <a href="{{ url_for('dataset.subdomain_index', doi=version_ds.ds_meta_data.dataset_doi) }}" class="btn btn-sm btn-outline-secondary" style="font-size: 0.7rem;">View</a>
+                                {% else %}
+                                    <a href="{{ url_for('dataset.get_unsynchronized_dataset', dataset_id=version_ds.id) }}" class="btn btn-sm btn-outline-secondary" style="font-size: 0.7rem;">View</a>
+                                {% endif %}
+                            {% else %}
+                                <span class="badge bg-light text-dark border">Current</span>
+                            {% endif %}
+                        </div>
+
+                        <p class="mb-0 small text-muted text-truncate" style="max-width: 250px;">
+                            {{ version_ds.ds_meta_data.title }}
+                        </p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
         <div class="list-group">
 
             <div class="list-group-item">
@@ -356,7 +399,7 @@
                                         <li>
                                             <a class="dropdown-item" href="javascript:void(0);" onclick="checkPIX('{{ file.id }}')">Syntax check</a>
                                         </li>
-                                        </ul>
+                                    </ul>
                                 </div>
                                 
                                 <div class="btn-group" role="group">
