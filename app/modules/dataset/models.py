@@ -87,6 +87,15 @@ class BaseDataSet(db.Model):
     )
     type = db.Column(db.String(50), nullable=False, server_default="pix", index=True)
 
+    version = db.Column(db.Integer, default=1, nullable=False)
+    previous_version_id = db.Column(db.Integer, db.ForeignKey("data_set.id", ondelete="SET NULL"), nullable=True)
+
+    next_versions = db.relationship(
+        "BaseDataSet",
+        backref=db.backref("previous_version", remote_side=[id]),
+        lazy=True
+    )
+
     __mapper_args__ = {
         "polymorphic_on": type,
         "polymorphic_identity": "base",

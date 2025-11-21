@@ -120,25 +120,41 @@ class DataSetService(BaseService):
         datasets_with_doi = [d for d in datasets if d.ds_meta_data and d.ds_meta_data.dataset_doi]
         return datasets_with_doi
 
-    def create_from_form(self, form, current_user) -> DataSet:
+    def create_from_form(self, form, current_user, parent_dataset=None) -> DataSet:
         main_author = {
             "name": f"{current_user.profile.surname}, {current_user.profile.name}",
             "affiliation": current_user.profile.affiliation,
             "orcid": current_user.profile.orcid,
         }
         try:
+
             logger.info(f"Creating dsmetadata...: {form.get_dsmetadata()}")
             dsmetadata = self.dsmetadata_repository.create(**form.get_dsmetadata())
+            
             for author_data in [main_author] + form.get_authors():
                 author = self.author_repository.create(
                     commit=False, ds_meta_data_id=dsmetadata.id, **author_data
                 )
                 dsmetadata.authors.append(author)
 
+            target_version = 1
+            target_prev_id = None
+            
+            if parent_dataset:
+                target_version = parent_dataset.version + 1
+                target_prev_id = parent_dataset.id
+            
             dataset = self.create(
-                commit=False, user_id=current_user.id, ds_meta_data_id=dsmetadata.id
+                commit=False, 
+                user_id=current_user.id, 
+                ds_meta_data_id=dsmetadata.id,
+                version=target_version,
+                previous_version_id=target_prev_id
             )
 
+            dataset.version = target_version
+            dataset.previous_version_id = target_prev_id
+            
             for file_model in form.file_models:
                 filename = file_model.filename.data
                 fmmetadata = self.fmmetadata_repository.create(
@@ -154,7 +170,6 @@ class DataSetService(BaseService):
                     commit=False, data_set_id=dataset.id, fm_meta_data_id=fmmetadata.id
                 )
 
-                # associated files in file model
                 file_path = os.path.join(current_user.temp_folder(), filename)
                 checksum, size = calculate_checksum_and_size(file_path)
 
@@ -166,11 +181,14 @@ class DataSetService(BaseService):
                     file_model_id=fm.id,
                 )
                 fm.files.append(file)
+            
             self.repository.session.commit()
+            
         except Exception as exc:
-            logger.info(f"Exception creating dataset from form...: {exc}")
+            logger.exception(f"Exception creating dataset from form...: {exc}")
             self.repository.session.rollback()
             raise exc
+            
         return dataset
 
     def update_dsmetadata(self, id, **kwargs):

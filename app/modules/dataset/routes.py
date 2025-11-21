@@ -284,3 +284,81 @@ def get_unsynchronized_dataset(dataset_id):
         abort(404)
 
     return render_template("dataset/view_dataset.html", dataset=dataset)
+
+@dataset_bp.route("/dataset/<int:dataset_id>/create_version", methods=["GET", "POST"])
+@login_required
+def create_dataset_version(dataset_id):
+    parent_dataset = dataset_service.get_or_404(dataset_id)
+    
+    form = DataSetForm()
+
+    if request.method == "POST":
+        dataset = None
+
+        if not form.validate_on_submit():
+            return jsonify({"message": form.errors}), 400
+
+        try:
+            logger.info(f"Initiating version creation for dataset {dataset_id}")
+            
+            dataset = dataset_service.create_from_form(
+                form=form, 
+                current_user=current_user, 
+                parent_dataset=parent_dataset 
+            )
+            
+            logger.info(f"Created dataset version: {dataset}")
+            dataset_service.move_file_models(dataset)
+        
+        except Exception as exc:
+            logger.exception(f"Exception while create dataset data in local {exc}")
+            return jsonify({"Exception while create dataset data in local: ": str(exc)}), 400
+
+        data = {}
+        try:
+            zenodo_response_json = zenodo_service.create_new_deposition(dataset)
+            response_data = json.dumps(zenodo_response_json)
+            data = json.loads(response_data)
+        except Exception as exc:
+            data = {}
+            zenodo_response_json = {}
+            logger.exception(f"Exception while create dataset data in Zenodo {exc}")
+
+        if data.get("id"):
+            deposition_id = data.get("id")
+            dataset_service.update_dsmetadata(
+                dataset.ds_meta_data_id, deposition_id=deposition_id
+            )
+            try:
+                for file_model in dataset.file_models:
+                    zenodo_service.upload_file(dataset, deposition_id, file_model)
+                zenodo_service.publish_deposition(deposition_id)
+                deposition_doi = zenodo_service.get_doi(deposition_id)
+                dataset_service.update_dsmetadata(
+                    dataset.ds_meta_data_id, dataset_doi=deposition_doi
+                )
+            except Exception as e:
+                msg = f"it has not been possible upload file models in Zenodo and update the DOI: {e}"
+                return jsonify({"message": msg}), 200
+
+        file_path = current_user.temp_folder()
+        if os.path.exists(file_path) and os.path.isdir(file_path):
+            shutil.rmtree(file_path)
+
+        msg = "New version created successfully!"
+        return jsonify({"message": msg}), 200
+
+    if request.method == "GET":
+        form.title.data = parent_dataset.ds_meta_data.title
+        form.desc.data = parent_dataset.ds_meta_data.description
+        form.publication_type.data = parent_dataset.ds_meta_data.publication_type.name
+        form.tags.data = parent_dataset.ds_meta_data.tags
+        
+        return render_template(
+            "dataset/upload_dataset.html", 
+            form=form, 
+            is_version_creation=True,
+            parent_title=parent_dataset.ds_meta_data.title,
+            version_number=parent_dataset.version + 1,
+            parent_dataset=parent_dataset
+        )

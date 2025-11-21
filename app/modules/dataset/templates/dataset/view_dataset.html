@@ -37,6 +37,15 @@
         </a>
     </div>
 
+    <div class="col-6 text-end">
+        {% if current_user.is_authenticated and current_user.id == dataset.user.id %}
+            <a href="{{ url_for('dataset.create_dataset_version', dataset_id=dataset.id) }}" class="btn btn-outline-primary btn-sm" style="border-radius: 5px;">
+                <i data-feather="plus-square" class="center-button-icon"></i>
+                Create new version
+            </a>
+        {% endif %}
+    </div>
+
 </div>
 
 <div class="row">
@@ -47,8 +56,13 @@
             <div class="card-body">
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center">
-                        <h1 class="m-0 me-7"><b>{{ dataset.ds_meta_data.title }}</b></h1>
-                        <span class="text-secondary small">
+                        <h1 class="m-0 me-7">
+                            <b>{{ dataset.ds_meta_data.title }}</b>
+                            {% if dataset.version > 1 %}
+                                <span class="badge bg-secondary fs-6 ms-2">v{{ dataset.version }}</span>
+                            {% endif %}
+                        </h1>
+                        <span class="text-secondary small ms-3">
                                         {{ dataset.get_download_count() }}
                                         <i data-feather="download" class="align-middle me-1"></i>
                         </span>
@@ -57,6 +71,18 @@
                         <span class="badge bg-secondary">{{ dataset.get_cleaned_publication_type() }}</span>
                     </div>
                 </div>
+                
+                {% if dataset.previous_version %}
+                <div class="mb-2">
+                    <small class="text-muted">
+                        This is a new version of 
+                        <a href="{{ url_for('dataset.get_unsynchronized_dataset', dataset_id=dataset.previous_version.id) }}">
+                            {{ dataset.previous_version.ds_meta_data.title }} (v{{ dataset.previous_version.version }})
+                        </a>
+                    </small>
+                </div>
+                {% endif %}
+
                 <p class="text-secondary">{{ dataset.created_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
 
                 <div class="row mb-4">
@@ -330,12 +356,7 @@
                                         <li>
                                             <a class="dropdown-item" href="javascript:void(0);" onclick="checkPIX('{{ file.id }}')">Syntax check</a>
                                         </li>
-                                        <!--
-                                        <li>
-                                            <a class="dropdown-item" href="{{ url_for('pixchecker.valid', file_id=file.id) }}">SAT validity check</a>
-                                        </li>
-                                        -->
-                                    </ul>
+                                        </ul>
                                 </div>
                                 
                                 <div class="btn-group" role="group">
