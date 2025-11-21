@@ -36,16 +36,12 @@ def download_env(test_client):
         db.session.add(cart)
 
         # 3. Crear Perfil
-        profile = UserProfile(
-            user_id=user_id, name="Downloader", surname="Test", orcid="0000-1111-2222-3333"
-        )
+        profile = UserProfile(user_id=user_id, name="Downloader", surname="Test", orcid="0000-1111-2222-3333")
         db.session.add(profile)
 
         # 4. Crear Dataset
         ds_meta = DSMetaData(
-            title="Download Dataset",
-            description="Dataset for download test",
-            publication_type=PublicationType.OTHER
+            title="Download Dataset", description="Dataset for download test", publication_type=PublicationType.OTHER
         )
         db.session.add(ds_meta)
         db.session.commit()
@@ -61,7 +57,7 @@ def download_env(test_client):
             title="Download Model",
             description="Model for download test",
             publication_type=PublicationType.JOURNAL_ARTICLE,
-            uvl_version="1.0"
+            uvl_version="1.0",
         )
         db.session.add(fm_meta)
         db.session.commit()
@@ -98,9 +94,7 @@ def download_env(test_client):
 
             if ds_ids:
                 # delete FileModel rows referencing these datasets
-                FileModel.query.filter(FileModel.data_set_id.in_(ds_ids)).delete(
-                    synchronize_session=False
-                )
+                FileModel.query.filter(FileModel.data_set_id.in_(ds_ids)).delete(synchronize_session=False)
                 db.session.commit()
 
                 # delete each DataSet instance via session.delete() to avoid

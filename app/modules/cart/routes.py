@@ -109,7 +109,7 @@ def download_cart():
     print(f"DEBUG: Working DIR: '{working_dir}'")
     print(f"DEBUG: Directorio Actual (getcwd): '{os.getcwd()}'")
 
-    with zipfile.ZipFile(zip_path, 'w') as zipf:
+    with zipfile.ZipFile(zip_path, "w") as zipf:
         for item in cart_items:
             file_model = fm_service.get_by_id(item["file_model_id"])
             if file_model:
@@ -117,13 +117,7 @@ def download_cart():
                 dateset_id = file_model.data_set_id
                 filename = file_model.fm_meta_data.filename
 
-                file_path = os.path.join(
-                    working_dir,
-                    "uploads",
-                    f"user_{user_id}",
-                    f"dataset_{dateset_id}",
-                    filename
-                )
+                file_path = os.path.join(working_dir, "uploads", f"user_{user_id}", f"dataset_{dateset_id}", filename)
 
                 existe = os.path.exists(file_path)
                 print(f"DEBUG: Buscando archivo: {file_path}")
@@ -134,9 +128,4 @@ def download_cart():
                 else:
                     print("DEBUG: ¡ERROR! El archivo no está donde debería.")
 
-    return send_from_directory(
-        temp_dir,
-        zip_filename,
-        as_attachment=True,
-        mimetype="application/zip"
-    )
+    return send_from_directory(temp_dir, zip_filename, as_attachment=True, mimetype="application/zip")

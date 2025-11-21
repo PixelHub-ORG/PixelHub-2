@@ -48,9 +48,7 @@ class DSMetrics(db.Model):
     number_of_files = db.Column(db.String(120))
 
     def __repr__(self):
-        return (
-            f"DSMetrics<models={self.number_of_models}, files={self.number_of_files}>"
-        )
+        return f"DSMetrics<models={self.number_of_models}, files={self.number_of_files}>"
 
 
 class DSMetaData(db.Model):
@@ -63,12 +61,8 @@ class DSMetaData(db.Model):
     dataset_doi = db.Column(db.String(120))
     tags = db.Column(db.String(120))
     ds_metrics_id = db.Column(db.Integer, db.ForeignKey("ds_metrics.id"))
-    ds_metrics = db.relationship(
-        "DSMetrics", uselist=False, backref="ds_meta_data", cascade="all, delete"
-    )
-    authors = db.relationship(
-        "Author", backref="ds_meta_data", lazy=True, cascade="all, delete"
-    )
+    ds_metrics = db.relationship("DSMetrics", uselist=False, backref="ds_meta_data", cascade="all, delete")
+    authors = db.relationship("Author", backref="ds_meta_data", lazy=True, cascade="all, delete")
 
 
 class BaseDataSet(db.Model):
@@ -77,15 +71,16 @@ class BaseDataSet(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
-    ds_meta_data_id = db.Column(
-        db.Integer, db.ForeignKey("ds_meta_data.id"), nullable=False
-    )
+    ds_meta_data_id = db.Column(db.Integer, db.ForeignKey("ds_meta_data.id"), nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
-    ds_meta_data = db.relationship(
-        "DSMetaData", backref=db.backref("data_set", uselist=False)
-    )
+    ds_meta_data = db.relationship("DSMetaData", backref=db.backref("data_set", uselist=False))
     type = db.Column(db.String(50), nullable=False, server_default="pix", index=True)
+
+    version = db.Column(db.Integer, default=1, nullable=False)
+    previous_version_id = db.Column(db.Integer, db.ForeignKey("data_set.id", ondelete="SET NULL"), nullable=True)
+
+    next_versions = db.relationship("BaseDataSet", backref=db.backref("previous_version", remote_side=[id]), lazy=True)
 
     __mapper_args__ = {
         "polymorphic_on": type,
@@ -112,9 +107,7 @@ class BaseDataSet(db.Model):
     def get_pixelhub_doi(self):
         from app.modules.dataset.services import DataSetService
 
-        return DataSetService().get_pixelhub_doi(
-            self
-        )  # TODO: Corregir nombre método en services
+        return DataSetService().get_pixelhub_doi(self)  # TODO: Corregir nombre método en services
 
     def validate_domain(self):
         """Validates whether the metadata is valid for the current file type.
@@ -136,13 +129,9 @@ class PixDataset(BaseDataSet):
     # required for joined-table inheritance: link child table PK to parent table PK
     id = db.Column(db.Integer, db.ForeignKey("data_set.id"), primary_key=True)
 
-    pix_meta_data = db.relationship(
-        "PixMetaData", backref="dataset", uselist=False, cascade="all, delete-orphan"
-    )
+    pix_meta_data = db.relationship("PixMetaData", backref="dataset", uselist=False, cascade="all, delete-orphan")
 
-    file_models = db.relationship(
-        "FileModel", backref="data_set", lazy=True, cascade="all, delete"
-    )
+    file_models = db.relationship("FileModel", backref="data_set", lazy=True, cascade="all, delete")
 
     def name(self):
         return self.ds_meta_data.title
@@ -189,16 +178,16 @@ class PixDataset(BaseDataSet):
                 if f.lower().endswith(".pix"):
                     return os.path.join(temp_folder, f)
         return None
-    
+
     def get_authors_set(self):
         return set(self.ds_meta_data.authors) if self.ds_meta_data.authors else set()
-    
+
     def get_tags_set(self):
         return set(self.ds_meta_data.tags.split(",")) if self.ds_meta_data.tags else set()
-    
+
     def get_publication_type(self):
         return self.ds_meta_data.publication_type
-    
+
     def calculate_similarity_score(self, other_dataset):
         # Similarity score
         score = 0
@@ -216,12 +205,12 @@ class PixDataset(BaseDataSet):
         common_tags = self_tags.intersection(other_tags)
 
         score += len(common_tags) * 3
-        
+
         # Increment common publication type
         self_publication_type = self.get_publication_type()
         other_publication_type = other_dataset.get_publication_type()
 
-        if (self_publication_type == other_publication_type):
+        if self_publication_type == other_publication_type:
             score += 6
 
         return score
