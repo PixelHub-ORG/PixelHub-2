@@ -1,3 +1,4 @@
+import difflib
 import hashlib
 import logging
 import os
@@ -295,3 +296,104 @@ class SizeService:
             return f"{round(size / (1024**2), 2)} MB"
         else:
             return f"{round(size / (1024**3), 2)} GB"
+
+
+class DataSetComparisonService:
+    def compare(self, old_ds, new_ds):
+        """
+        Compara dos datasets y devuelve un diccionario con las diferencias.
+        """
+        return {"metadata": self._compare_metadata(old_ds, new_ds), "files": self._compare_files(old_ds, new_ds)}
+
+    def _compare_metadata(self, old_ds, new_ds):
+        changes = []
+        old_meta = old_ds.ds_meta_data
+        new_meta = new_ds.ds_meta_data
+
+        fields = [
+            ("Title", "title"),
+            ("Description", "description"),
+            ("Publication Type", "publication_type"),
+            ("Publication DOI", "publication_doi"),
+            ("Tags", "tags"),
+        ]
+
+        for label, attr in fields:
+            val_old = getattr(old_meta, attr)
+            val_new = getattr(new_meta, attr)
+
+            val_old_str = str(val_old.name) if hasattr(val_old, "name") else str(val_old)
+            val_new_str = str(val_new.name) if hasattr(val_new, "name") else str(val_new)
+
+            if val_old_str != val_new_str:
+                changes.append({"field": label, "old": val_old_str, "new": val_new_str})
+
+        old_authors = {a.name for a in old_meta.authors}
+        new_authors = {a.name for a in new_meta.authors}
+
+        if old_authors != new_authors:
+            added = new_authors - old_authors
+            removed = old_authors - new_authors
+            if added or removed:
+                changes.append(
+                    {
+                        "field": "Authors",
+                        "old": ", ".join(removed) if removed else "-",
+                        "new": ", ".join(added) if added else "-",
+                    }
+                )
+
+        return changes
+
+    def _compare_files(self, old_ds, new_ds):
+        old_files = {f.name: f for f in old_ds.files()}
+        new_files = {f.name: f for f in new_ds.files()}
+
+        added = []
+        deleted = []
+        modified = []
+        unchanged = []
+
+        all_names = set(old_files.keys()) | set(new_files.keys())
+
+        for name in all_names:
+            if name in new_files and name not in old_files:
+                added.append(new_files[name])
+            elif name in old_files and name not in new_files:
+                deleted.append(old_files[name])
+            else:
+                f_old = old_files[name]
+                f_new = new_files[name]
+                if f_old.checksum != f_new.checksum:
+                    modified.append({"old": f_old, "new": f_new})
+                else:
+                    unchanged.append(f_new)
+
+        return {"added": added, "deleted": deleted, "modified": modified, "unchanged": unchanged}
+
+    def generate_diff_html(self, file_id_old, file_id_new):
+        from app.modules.hubfile.models import Hubfile
+
+        f_old = Hubfile.query.get(file_id_old)
+        f_new = Hubfile.query.get(file_id_new)
+
+        path_old = f_old.get_path()
+        path_new = f_new.get_path()
+
+        try:
+            with open(path_old, "r", encoding="utf-8", errors="ignore") as f:
+                lines_old = f.readlines()
+            with open(path_new, "r", encoding="utf-8", errors="ignore") as f:
+                lines_new = f.readlines()
+
+            diff = difflib.HtmlDiff(wrapcolumn=90).make_table(
+                lines_old,
+                lines_new,
+                fromdesc=f"Old: {f_old.name}",
+                todesc=f"New: {f_new.name}",
+                context=True,
+                numlines=3,
+            )
+            return diff
+        except Exception as e:
+            return f"Error generating diff: {e}"

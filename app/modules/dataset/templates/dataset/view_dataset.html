@@ -23,7 +23,7 @@
         margin-bottom: 0;
         padding-bottom: 0;
     }
-
+    /* Estilos para el Timeline de versiones */
     .timeline-item {
         position: relative;
     }
@@ -32,13 +32,6 @@
         margin-bottom: 0 !important;
         padding-bottom: 0 !important;
     }
-
-    .timeline-item:last-child {
-        border-bottom: none !important;
-        margin-bottom: 0 !important;
-        padding-bottom: 0 !important;
-    }
-
 </style>
 {% endblock %}
 
@@ -87,6 +80,17 @@
                         <span class="badge bg-secondary">{{ dataset.get_cleaned_publication_type() }}</span>
                     </div>
                 </div>
+                
+                {% if dataset.previous_version %}
+                <div class="mb-2">
+                    <small class="text-muted">
+                        This is a new version of 
+                        <a href="{{ url_for('dataset.subdomain_index', doi=dataset.previous_version.ds_meta_data.dataset_doi) }}">
+                            {{ dataset.previous_version.ds_meta_data.title }} (v{{ dataset.previous_version.version }})
+                        </a>
+                    </small>
+                </div>
+                {% endif %}
 
                 <p class="text-secondary">{{ dataset.created_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
 
@@ -324,11 +328,20 @@
                             </div>
                             
                             {% if version_ds.id != dataset.id %}
-                                {% if version_ds.ds_meta_data.dataset_doi %}
-                                    <a href="{{ url_for('dataset.subdomain_index', doi=version_ds.ds_meta_data.dataset_doi) }}" class="btn btn-sm btn-outline-secondary" style="font-size: 0.7rem;">View</a>
-                                {% else %}
-                                    <a href="{{ url_for('dataset.get_unsynchronized_dataset', dataset_id=version_ds.id) }}" class="btn btn-sm btn-outline-secondary" style="font-size: 0.7rem;">View</a>
-                                {% endif %}
+                                <div class="btn-group">
+                                    {% if version_ds.ds_meta_data.dataset_doi %}
+                                        <a href="{{ url_for('dataset.subdomain_index', doi=version_ds.ds_meta_data.dataset_doi) }}" class="btn btn-sm btn-outline-secondary" style="font-size: 0.7rem;">View</a>
+                                    {% else %}
+                                        <a href="{{ url_for('dataset.get_unsynchronized_dataset', dataset_id=version_ds.id) }}" class="btn btn-sm btn-outline-secondary" style="font-size: 0.7rem;">View</a>
+                                    {% endif %}
+
+                                    <a href="{{ url_for('dataset.compare_datasets', old_id=version_ds.id, new_id=dataset.id) }}" 
+                                       class="btn btn-sm btn-outline-primary" 
+                                       style="font-size: 0.7rem;" 
+                                       title="Compare with current view">
+                                        <i data-feather="git-pull-request" style="width: 12px; height: 12px; vertical-align: middle;"></i> Diff
+                                    </a>
+                                </div>
                             {% else %}
                                 <span class="badge bg-light text-dark border">Current</span>
                             {% endif %}

@@ -23,6 +23,7 @@ from app.modules.dataset import dataset_bp
 from app.modules.dataset.forms import DataSetForm
 from app.modules.dataset.services import (
     AuthorService,
+    DataSetComparisonService,
     DataSetService,
     DOIMappingService,
     DSDownloadRecordService,
@@ -345,3 +346,28 @@ def create_dataset_version(dataset_id):
             version_number=parent_dataset.version + 1,
             parent_dataset=parent_dataset,
         )
+
+
+@dataset_bp.route("/dataset/compare/<int:old_id>/<int:new_id>", methods=["GET"])
+@login_required
+def compare_datasets(old_id, new_id):
+    old_ds = dataset_service.get_or_404(old_id)
+    new_ds = dataset_service.get_or_404(new_id)
+
+    comparison_service = DataSetComparisonService()
+    diff_data = comparison_service.compare(old_ds, new_ds)
+
+    return render_template(
+        "dataset/compare.html",
+        old_ds=old_ds,
+        new_ds=new_ds,
+        metadata_changes=diff_data["metadata"],
+        file_changes=diff_data["files"],
+    )
+
+
+@dataset_bp.route("/file/diff/<int:old_file_id>/<int:new_file_id>", methods=["GET"])
+def file_diff(old_file_id, new_file_id):
+    comparison_service = DataSetComparisonService()
+    diff_html = comparison_service.generate_diff_html(old_file_id, new_file_id)
+    return jsonify({"diff_html": diff_html})
