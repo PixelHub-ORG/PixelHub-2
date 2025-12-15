@@ -1,10 +1,10 @@
 # TODO: 
 - Hablar del cambio propuesto en Visión global del proceso de desarrollo. (ISMAEL)
 - Revisar todo lo escrito en ese punto, hay cosas que no tienen mucho sentido como hablar de Rosemary que no lo hemos implementado nosotros. (no lo veo del todo mal hablar un poco de rosemary) (ISMAEL)
-- Guía de instalación HECHO, falta vagrant
+- Guía de instalación HECHO, falta vagrant (HECHO: DIEGO)
 - Ejercicio de propuesta de cambio
 - Cambiar la visión global, se nota demasiado que es IA  (ISMAEL)
-- Rellenar las horas, una vez que esté completo el Clockify, y adjuntar el report
+- Rellenar las horas, una vez que esté completo el Clockify, y adjuntar el report (HECHO: DIEGO)
 
 (si hay alguna duda del TODO preguntar a Diego)
 
@@ -29,13 +29,15 @@ El documento del proyecto tendrá (al menos) que sintetizar los siguientes apart
 
 Miembro del equipo  | Horas | Commits | LoC | Test | Issues | Work Item| Dificultad
 ------------- | ------------- | ------------- | ------------- | ------------- | ------------- |  ------------- |  ------------- | 
-[Ángel Postigo, Estrella del Carmen](https://github.com/nombredeusuariodegithub) | HH | 12 | 987 | 17 | 4 | Build my own dataset | M |
-[Carrasco Mkhazni, Ismael](https://github.com/nombredeusuariodegithub) | HH | 8 | 468 | 3 | 6 | Download own dataset | M |
-[Cerdá Morales, Carlos](https://github.com/nombredeusuariodegithub) | HH | 64 | 16.632 | 47 | 9 | Differences between versions | H |
-[Founoun El Aoud, Loubna](https://github.com/nombredeusuariodegithub) | HH | 48 | 1.163| 4 | 5 | View user profile | L |
-[Moraza Vergara, José Luis](https://github.com/nombredeusuariodegithub) | HH | 23 | 2.930 | 57 | 9 | Upload from Github/Zip | H |
-[Terrón Hernández, Diego](https://github.com/nombredeusuariodegithub) | HH | 10 | 698 | 4 | 3 | Auth with ORCID | L |
-**TOTAL** | HH | 165  | 22878 | 132 | 36 |  | H(2)/M(2)/L(2) |
+[Ángel Postigo, Estrella del Carmen](https://github.com/nombredeusuariodegithub) | 59:07 | 12 | 987 | 17 | 4 | Build my own dataset | M |
+[Carrasco Mkhazni, Ismael](https://github.com/nombredeusuariodegithub) | 50:26 | 8 | 468 | 3 | 6 | Download own dataset | M |
+[Cerdá Morales, Carlos](https://github.com/nombredeusuariodegithub) | 57:25 | 64 | 16.632 | 47 | 9 | Differences between versions | H |
+[Founoun El Aoud, Loubna](https://github.com/nombredeusuariodegithub) | 53:42 | 48 | 1.163| 4 | 5 | View user profile | L |
+[Moraza Vergara, José Luis](https://github.com/nombredeusuariodegithub) | 51:54 | 23 | 2.930 | 57 | 9 | Upload from Github/Zip | H |
+[Terrón Hernández, Diego](https://github.com/nombredeusuariodegithub) | 51:33 | 10 | 698 | 4 | 3 | Auth with ORCID | L |
+**TOTAL** | 324:08 | 165  | 22878 | 132 | 36 |  | H(2)/M(2)/L(2) |
+
+[Clockify Report](clockify_report.pdf)
 
 ## Integración con otros equipos
 
@@ -324,7 +326,7 @@ Para el despliegue del sistema en Docker seguiremos los siguientes pasos. Se est
 
 ---
 
-#### 1. Instalación de Docker y Docker Compose
+##### 1. Instalación de Docker y Docker Compose
 
 Ejecutaremos la siguiente secuencia de comandos para instalar la versión oficial de Docker en **Ubuntu 22.04**:
 
@@ -365,7 +367,7 @@ Si el comando muestra información tanto del **Client** como del **Server**, la 
 
 ---
 
-#### 2. Clonado del repositorio del proyecto
+##### 2. Clonado del repositorio del proyecto
 
 A continuación, instalamos **Git** y descargamos el código del proyecto:
 
@@ -398,7 +400,7 @@ GITHUB_TOKEN="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"
 
 ---
 
-#### 3. Ejecución de scripts de despliegue
+##### 3. Ejecución de scripts de despliegue
 
 Para facilitar el despliegue del sistema, se han creado dos scripts dentro de la carpeta `/scripts`.
 
@@ -419,11 +421,11 @@ cd scripts
 
 ---
 
-#### 4. Acceso a los servicios
+##### 4. Acceso a los servicios
 
 Una vez que los contenedores estén levantados:
 
-#### Backend
+##### Backend
 
 Ejecutar el siguiente comando para acceder al contenedor del backend:
 
@@ -443,7 +445,7 @@ Para salir del contenedor:
 exit
 ```
 
-#### Frontend
+##### Frontend
 
 Abrir un navegador web y acceder a para comprobar que PixelHub funciona:
 
@@ -458,7 +460,7 @@ http://localhost:5001
 
 ---
 
-### 5. Detener y limpiar el entorno (`docker_down.sh`)
+##### 5. Detener y limpiar el entorno (`docker_down.sh`)
 
 Para detener los contenedores, eliminarlos y volver a iniciar MariaDB en el sistema, ejecutar:
 
@@ -480,14 +482,79 @@ Este script:
 
 #### Opción B: Vagrant
 
-#### Opción D: Local
+Esta guía detalla los pasos para desplegar el entorno utilizando Vagrant y VirtualBox (versión 7.0.16).
+
+> **IMPORTANTE:** Asegúrese de que **Secure Boot** NO está activado en la BIOS de su sistema.
+
+##### 1. Preparación del Sistema
+
+Para evitar conflictos con KVM, es necesario añadir los módulos a la lista negra y reiniciar:
+
+```bash
+echo "blacklist kvm_intel" | sudo tee /etc/modprobe.d/blacklist-kvm.conf
+echo "blacklist kvm_amd" | sudo tee -a /etc/modprobe.d/blacklist-kvm.conf
+```
+
+**Nota:** Es necesario **reiniciar el ordenador** después de ejecutar estos comandos.
+
+##### 2. Instalación de Software
+
+Instalaremos Vagrant, Ansible y VirtualBox. Asegúrese de utilizar VirtualBox 7.0.16 o compatible.
+
+```bash
+sudo apt update
+
+# Añadir repositorio de HashiCorp para Vagrant
+wget -O - https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+
+# Instalar paquetes
+sudo apt update && sudo apt install vagrant ansible virtualbox
+```
+
+##### 3. Configuración del Proyecto
+
+En el directorio raíz del proyecto (`PixelHub-2`), modificamos el archivo `.env`. Debemos cambiar la variable `WORKING_DIR` para que apunte al directorio de Vagrant:
+
+```bash
+# En el archivo .env cambiar WORKING_DIR="" por:
+WORKING_DIR=/vagrant/
+```
+> **Nota:** El valor debe ser exactamente `/vagrant/`, sin comillas adicionales si no son necesarias por el formato.
+
+##### 4. Despliegue y Ejecución
+
+Accedemos a la carpeta `vagrant` y levantamos la máquina virtual:
+
+```bash
+cd vagrant
+vagrant up
+```
+
+Una vez finalizado el proceso, la aplicación debería estar accesible en:
+`http://localhost:5000`
+
+##### 5. Solución de Problemas
+
+Si ocurre algún error durante el despliegue (`vagrant up`), es necesario limpiar el entorno completamente antes de reintentar, ya que la máquina virtual puede quedar en un estado inconsistente.
+
+```bash
+vagrant halt
+vagrant destroy -f
+vagrant up
+```
+
+---
+
+
+#### Opción C: Local
 
 
 Esta guía detalla los pasos para instalar y poner en marcha **PixelHub2** en un entorno Ubuntu limpio.
 
 ---
 
-### 1. Instalación y configuración de MariaDB
+##### 1. Instalación y configuración de MariaDB
 
 Instalar MariaDB:
 
@@ -526,7 +593,7 @@ GRANT ALL PRIVILEGES ON pixelhubdb_test.* TO 'pixelhubdb_user'@'localhost';
 FLUSH PRIVILEGES;
 EXIT;
 ```
-#### 2. Crear el archivo de variables de entorno `.env`
+##### 2. Crear el archivo de variables de entorno `.env`
 Creamos ahora el `.env` para que la aplicación funcione correctamente, estableciendo las siguientes variables de entorno:
 
 ```bash
@@ -554,7 +621,7 @@ Crear el archivo `.moduleignore`:
 echo "webhook" > .moduleignore
 ```
 
-### 3. Instalación de Python3.12
+##### 3. Instalación de Python3.12
 Ejecutamos:
 ```bash 
 sudo apt install python3.12-venv -y
@@ -586,7 +653,7 @@ Verificamos si rosemary se ha instalado ejecutando:
 rosemary
 ```
 
-#### 5. Aplicar las migraciones
+##### 5. Aplicar las migraciones
 Ejecutamos la actualización de las migraciones y la población de la base de datos:
 
 ```bash
@@ -595,7 +662,7 @@ rosemary db:seed
 
 ```
 
-#### 6. Arrancar la aplicación
+##### 6. Arrancar la aplicación
 Aplicación principal:
 ```bash
 flask run --port 5000 --host=0.0.0.0 --reload --debug
