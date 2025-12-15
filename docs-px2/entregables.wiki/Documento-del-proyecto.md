@@ -158,111 +158,65 @@ A lo largo del desarrollo de la plataforma, se han implementado y mejorado varia
 7. **Interfaz de Usuario y Navegación:**
    - Se han realizado mejoras generales en la interfaz para integrar estas nuevas herramientas, facilitando la navegación entre la vista de detalles del dataset, el carrito de compra y el panel de administración del usuario.
 
-## Visión global del proceso de desarrollo (1.500 palabras aproximadamente)
+## Visión global del proceso de desarrollo
 
-Debe dar una visión general del proceso que ha seguido enlazándolo con las herramientas que ha utilizado. Ponga un ejemplo de un cambio que se proponga al sistema y cómo abordaría todo el ciclo hasta tener ese cambio en producción. Los detalles de cómo hacer el cambio vendrán en el apartado correspondiente.
+El proceso de desarrollo del sistema **PixelHub-2** se ha estructurado bajo los principios de la **Ingeniería de Software Moderna**, priorizando la reproducibilidad, la automatización y la calidad continua. Dado que el sistema integra gestión de datos complejos, interfaces web y comunicación con repositorios externos (Zenodo), el ciclo de vida del desarrollo (SDLC) se aleja de métodos rígidos para adoptar un enfoque ágil, apoyado firmemente en prácticas de **DevOps** y **Containerización**.
 
-### ***TODO LO SIGUIENTE, HASTA ENTORNO DE DESARROLLO ES UN BORRADOR, HAY QUE QUITAR COSAS MUY GENERALES COMO ROSEMARY***
+El flujo de trabajo diseñado no es una simple secuencia de pasos, sino un ecosistema integrado donde el código, la infraestructura y las pruebas conviven de manera sincronizada. A continuación, se detalla cómo se orquesta este proceso y las herramientas específicas que conforman el esqueleto tecnológico del proyecto.
 
-(hecho por Ismael)
+### Los Pilares del Proceso: Infraestructura como Código y Virtualización
 
-El proceso de desarrollo del sistema **PixelHub-2** ha sido diseñado bajo una filosofía de **Ingeniería de Software Moderna**, priorizando la reproducibilidad, la automatización y la calidad continua. Al tratarse de un sistema complejo que integra gestión de datos, interfaces web y comunicación con repositorios externos (Zenodo), el ciclo de vida del desarrollo (SDLC) se aleja de los métodos tradicionales en cascada para adoptar un enfoque ágil apoyado fuertemente en prácticas de **DevOps** y **Containerización**.
+La base fundamental sobre la que se cimienta todo el proceso de desarrollo es la eliminación de la discrepancia entre entornos. En el desarrollo de software distribuido, el problema de "funciona en mi máquina" es un obstáculo crítico. Para mitigar esto, **PixelHub-2** ha adoptado una estrategia dual de virtualización y contenerización.
 
-El flujo de trabajo no es simplemente una secuencia de pasos, sino un ecosistema integrado donde el código, la infraestructura y las pruebas conviven de manera sincronizada. A continuación, se detalla cómo se orquesta este proceso, vinculándolo con las herramientas específicas que conforman el esqueleto tecnológico del proyecto.
+Por un lado, utilizamos **Docker** como estándar principal para la definición de servicios. El archivo `docker-compose.dev.yml` define la "verdad única" del entorno, levantando simultáneamente la aplicación web (Flask), la base de datos MariaDB y el servidor Nginx.
 
-#### 1. Los Pilares del Proceso: Infraestructura como Código y Contenerización
+Por otro lado, hemos implementado **Vagrant** para gestionar entornos de desarrollo virtualizados completos. Esto nos permite desplegar una máquina virtual con una configuración de sistema operativo idéntica a la de producción, garantizando que las dependencias del sistema y las configuraciones de red sean consistentes para todos los desarrolladores, independientemente de su sistema operativo anfitrión.
 
-La base fundamental sobre la que se cimienta todo el proceso de desarrollo es la eliminación de la discrepancia entre entornos. En el desarrollo de software distribuido, el problema de "funciona en mi máquina" es un obstáculo crítico. Para mitigar esto, PixelHub-2 ha adoptado **Docker** como estándar absoluto para la definición del entorno.
+Un componente distintivo de esta arquitectura es el servicio **Fakenodo**. Dado que PixelHub-2 interactúa con la API de Zenodo, depender de la API real para el desarrollo diario sería ineficiente. El equipo utiliza este microservicio simulado, dockerizado independientemente, permitiendo que el ciclo de desarrollo sea autosuficiente y desconectado.
 
-El proceso de desarrollo comienza con la orquestación de servicios definida en los archivos `docker-compose`. El equipo no instala dependencias como bases de datos o servidores web directamente en sus sistemas operativos anfitriones. En su lugar, el archivo `docker/docker-compose.dev.yml` define la "verdad única" del entorno de desarrollo. Este archivo levanta simultáneamente:
+### Estandarización y Gestión de la Configuración
 
-* **La aplicación web (Flask):** En un contenedor dedicado.
-* **Base de datos MariaDB:** Garantizando que todos usen la misma versión y configuración, ejecutánose al inicio todos los comandos necesarios para garantizar que se obtenga la última versión de las migraciones y los seeders correspondiente.
-* **Servidor Nginx:** Actúa como proxy inverso incluso en desarrollo, replicando la arquitectura de producción.
+El control de versiones se gestiona mediante **Git**, utilizando una estrategia de ramas (*Branching Strategy*) que protege la rama principal. La estandarización se refuerza mediante el uso de **Commitlint**.
 
-Un componente distintivo de esta arquitectura es el servicio **Fakenodo**. Dado que PixelHub-2 interactúa con la API de Zenodo, depender de la API real para el desarrollo diario sería lento, propenso a errores y "ensuciaría" el entorno de producción de Zenodo. El equipo desarrolló un microservicio simulado, ubicado en la carpeta `fakenodo/` y dockerizado con su propio contenedor independiente. Esto permite que el ciclo de desarrollo sea autosuficiente y desconectado, una característica vital para la velocidad del proceso.
+El sistema impone una disciplina estricta en los mensajes de confirmación (commits) utilizando la especificación de *Conventional Commits* (ej. `feat:`, `fix:`, `chore:`). Esto facilita la trazabilidad semántica de la evolución del proyecto y permite la generación automática de registros de cambios. La configuración del entorno se gestiona a través de variables de entorno, asegurando que las credenciales sensibles nunca se filtren al repositorio.
 
-#### 2. Estandarización y Gestión de la Configuración
+### Automatización de Tareas (DX): Uso de Rosemary
 
-El control de versiones se gestiona mediante **Git**, utilizando una estrategia de ramas (*Branching Strategy*) que protege la rama principal. Sin embargo, el proceso va un paso más allá en la estandarización mediante el uso de **Commitlint**.
+Para optimizar la experiencia de desarrollo y reducir la carga cognitiva del equipo, el proyecto hace uso de la herramienta de línea de comandos (CLI) **Rosemary**.
 
-Analizando el archivo `commitlint.config.js` y el flujo de trabajo `CI_commits.yml`, se evidencia que el sistema impone una disciplina estricta en los mensajes de confirmación (commits). Se utiliza la especificación de *Conventional Commits* (ej. `feat:`, `fix:`, `chore:`). Esto no es meramente estético; es una decisión procesal que permite la generación automática de registros de cambios (changelogs) y facilita la trazabilidad semántica de la evolución del proyecto.
+Esta utilidad abstrae la complejidad de los comandos subyacentes de Docker, Flask y la base de datos. En lugar de ejecutar instrucciones manuales y propensas a errores, el equipo utiliza esta interfaz para tareas rutinarias como la inicialización y sembrado de la base de datos (`db:seed`), la ejecución de tests o la limpieza de cachés. Su integración en el flujo de trabajo acelera significativamente la incorporación de nuevos miembros y el mantenimiento diario.
 
-La configuración del entorno se gestiona a través de variables de entorno, con plantillas claras como `.env.local.example` y `.env.docker.example`, lo que asegura que las credenciales y configuraciones sensibles nunca se filtren al repositorio, siguiendo las mejores prácticas de seguridad (The Twelve-Factor App).
+### Estrategia de Aseguramiento de la Calidad (QA)
 
-#### 3. Automatización de la Experiencia de Desarrollo (DX): "Rosemary"
+La calidad no es una fase final, sino una actividad continua integrada en el desarrollo. La arquitectura de pruebas es piramidal y exhaustiva:
 
-Uno de los aspectos más innovadores del proceso de desarrollo de este sistema es la creación de una herramienta de línea de comandos (CLI) personalizada llamada **Rosemary**.
+* **Pruebas Unitarias:** Primera línea de defensa utilizando **Pytest**. Cada módulo (como `auth` o `dataset`) cuenta con su propia suite que valida la lógica de negocio aislada.
+* **Pruebas de Integración y End-to-End (E2E):** Para validar la interacción de los componentes y la interfaz de usuario, se utiliza **Selenium WebDriver**. El sistema lanza navegadores *headless* dentro de contenedores Docker, simulando interacciones humanas reales.
+* **Pruebas de Carga:** Antes de considerar un cambio listo para producción, verificamos su impacto en el rendimiento utilizando **Locust**, lo que permite detectar cuellos de botella bajo estrés.
 
-En lugar de obligar a los desarrolladores a memorizar complejos comandos de Docker, Flask o Alembic, el equipo ha encapsulado la lógica operativa del proyecto en scripts de Python ubicados en el directorio `rosemary/`. Esta herramienta actúa como un orquestador de tareas de desarrollo:
+### Integración Continua (CI) y Despliegue Continuo (CD)
 
-* **Gestión de Datos:** Si un desarrollador necesita reiniciar la base de datos y poblarla con datos de prueba, ejecuta `rosemary db:reset` y `rosemary db:seed`.
-* **Scaffolding:** Para crear un nuevo módulo, el comando `rosemary make:module` genera automáticamente toda la estructura de carpetas (modelos, rutas, servicios, tests) utilizando plantillas Jinja2, garantizando que todo el código nuevo siga la arquitectura modular predefinida.
-* **Testing:** Para ejecutar pruebas, `rosemary test` o `rosemary selenium` simplifican la invocación de los contenedores de prueba.
+El "pegamento" que une este proceso es **GitHub Actions**. El repositorio cuenta con flujos de trabajo robustos que automatizan la validación y entrega:
 
-Esta herramienta reduce la carga cognitiva del equipo y acelera significativamente la incorporación de nuevos miembros y el desarrollo diario.
+* **CI (Continuous Integration):** Cada subida de código dispara validaciones automáticas. Se verifica el estilo del código (Linting), se ejecutan las baterías de pruebas unitarias y se valida la semántica de los commits. Si algún paso falla, el cambio es rechazado automáticamente.
+* **CD (Continuous Deployment):** Una vez que el código se fusiona en la rama principal (`trunk`), se activa el despliegue automático. Se construyen imágenes de Docker optimizadas para producción y se despliegan en la plataforma Render, actualizando la aplicación en vivo sin intervención manual.
 
-#### 4. Estrategia de Aseguramiento de la Calidad (QA)
+### Ejemplo Ilustrativo: Ciclo de Vida de un Cambio
 
-El proceso de desarrollo integra la calidad no como una fase final, sino como una actividad continua. La arquitectura de pruebas es piramidal y exhaustiva:
+Para visualizar cómo encajan estas piezas, analizamos el ciclo de vida completo de una corrección real: **"Corrección del contenido del pie de página (Footer)"**.
 
-1.  **Pruebas Unitarias:** Son la primera línea de defensa. Utilizando **Pytest**, cada módulo (por ejemplo, `auth`, `dataset`, `cart`) tiene su propia suite de pruebas unitarias (`test_unit.py`). Estas validan la lógica de negocio aislada, asegurando que las funciones individuales se comporten correctamente.
-2.  **Pruebas de Integración y End-to-End (E2E):** Para validar que los componentes funcionan juntos y que la interfaz de usuario responde adecuadamente, se utiliza **Selenium WebDriver**. El sistema está configurado para lanzar navegadores *headless* (sin interfaz gráfica) dentro de contenedores Docker, simulando interacciones humanas reales (clics, envíos de formularios, navegación).
-3.  **Pruebas de Carga y Rendimiento:** Antes de considerar que un cambio está listo para producción, se verifica su impacto en el rendimiento utilizando **Locust**. Los archivos `locustfile.py` definen escenarios de usuarios concurrentes, permitiendo al equipo detectar cuellos de botella bajo estrés.
+**Escenario:** Se detectó que el pie de página mostraba una lista de universidades en lugar de los nombres del equipo de desarrollo, tal como se requería para la versión actual.
 
-Además, se aplica un análisis estático de código (Linting) mediante `flake8` y otras herramientas configuradas en `rosemary/commands/linter.py`, asegurando que el código cumpla con los estándares de estilo PEP8.
-
-#### 5. Integración Continua (CI) y Despliegue Continuo (CD)
-
-El "pegamento" que une todo este proceso es **GitHub Actions**. El repositorio contiene una carpeta `.github/workflows` robusta que automatiza la validación y entrega del software.
-
-### Integración Continua (CI)
-Cada vez que un desarrollador sube código (*push*) o abre una solicitud de cambio (*Pull Request*), se disparan flujos de trabajo automáticos:
-* `CI_lint.yml`: Verifica el estilo del código.
-* `CI_pytest.yml`: Ejecuta toda la batería de pruebas unitarias.
-* `CI_coverage.yml`: Asegura que el porcentaje de código cubierto por pruebas no disminuya.
-* `CI_commits.yml`: Valida la semántica de los mensajes de commit.
-
-Si alguno de estos pasos falla, el cambio es rechazado automáticamente, impidiendo que código defectuoso llegue a la rama principal.
-
-### Despliegue Continuo (CD)
-Una vez que el código se fusiona en la rama principal (`trunk` o `main`), el proceso de despliegue se activa:
-* `CD_dockerhub.yml`: Construye las imágenes de Docker optimizadas para producción (`Dockerfile.prod`) y las sube al registro de contenedores Docker Hub.
-* `CD_render.yml`: Gestiona el despliegue automático en la plataforma Render, actualizando la aplicación en vivo sin intervención humana.
-
-#### Ejemplo Ilustrativo: Ciclo de Vida de un Cambio
-
-Para visualizar cómo todas estas piezas encajan en la práctica, analicemos el ciclo de vida completo de una propuesta de cambio concreta: **"Implementar la descarga del contenido del carrito en formato ZIP"**.
-
-1.  **Concepción y Ramificación:**
-    El desarrollador comienza actualizando su repositorio local y creando una nueva rama de funcionalidad siguiendo la convención:
-    `git checkout -b feature/download-cart-zip`.
-
-2.  **Desarrollo Local Asistido:**
-    El desarrollador levanta el entorno con `rosemary compose-env up` (que invoca a `docker compose up`). Utiliza `rosemary make:module cart` si el módulo no existiera, o edita directamente `app/modules/cart/routes.py` para añadir la lógica de compresión ZIP utilizando la librería `zipfile` de Python. Modifica la plantilla `view_cart.html` para añadir el botón de descarga.
-
-3.  **Verificación Local (Feedback Loop Rápido):**
-    Antes de subir nada, el desarrollador ejecuta:
-    * `rosemary linter`: Para corregir errores de estilo automáticamente.
-    * `rosemary test cart`: Para ejecutar los tests unitarios solo del módulo afectado.
-    * Crea un nuevo test E2E en `app/modules/cart/tests/test_selenium.py` que simula a un usuario añadiendo ítems y pulsando el botón de descarga, verificando que no hay errores 500. Ejecuta este test localmente contra el contenedor de Selenium.
-
-4.  **Confirmación (Commit):**
-    El desarrollador realiza el commit. Si intenta poner un mensaje vago como "fixed zip", el *hook* de `commitlint` local o el CI fallarán. Debe usar un mensaje semántico:
-    `git commit -m "feat(cart): add bulk download functionality via zip"`
-
-5.  **Integración Continua (The Guardian):**
-    Al hacer `git push`, GitHub Actions despierta.
-    * El workflow `CI_lint` escanea los archivos modificados.
-    * El workflow `CI_pytest` levanta un entorno efímero en la nube y ejecuta todos los tests del sistema para asegurar que la compresión ZIP no rompió, por ejemplo, la sincronización con Zenodo (test de regresión).
-
-6.  **Revisión y Fusión:**
-    Un compañero revisa el código (Code Review). Al aprobarse, se realiza el *Merge* a la rama `trunk`.
-
-7.  **Despliegue Automático:**
-    El merge en `trunk` dispara el workflow `CD_dockerhub`. Este construye una nueva imagen Docker usando `Dockerfile.prod`, la cual es mucho más ligera y segura que la de desarrollo (sin herramientas de debug). Finalmente, Render detecta la nueva imagen y actualiza el servidor de producción.
-
-En cuestión de minutos, y habiendo pasado por múltiples filtros de calidad automáticos, la funcionalidad está disponible para los usuarios finales. Este ciclo demuestra cómo PixelHub-2 utiliza herramientas modernas para convertir el desarrollo de software en un proceso industrializado, predecible y de alta calidad.
+1. **Identificación y Asignación:** La Issue es reportada por Estrella Ángel Postigo (Autor/Asignante). Se documenta el comportamiento actual y el esperado. La tarea se asigna al desarrollador José Luis Moraza Vergara.
+2. **Ramificación:** El desarrollador crea una rama específica para esta corrección, siguiendo la nomenclatura del proyecto, por ejemplo: `fix/footer-content-update`.
+3. **Desarrollo Local:** José Luis modifica las plantillas del frontend (UI) para reemplazar "University of Seville..." por la lista de integrantes: "Estrella Ángel Postigo · Ismael Carrasco Mkhazni · Carlos Cerdá Morales...". Utiliza el entorno local levantado con Docker/Vagrant para verificar visualmente que el cambio se refleja correctamente en el navegador.
+4. **Verificación y Commit:** Antes de subir el cambio, el desarrollador ejecuta los tests locales para asegurar que no ha roto la maquetación. Realiza un commit semántico describiendo la corrección: `fix(ui): update footer with dev team names`.
+5. **Integración Continua:** Al subir la rama al repositorio, GitHub Actions ejecuta automáticamente los linters y pruebas.
+6. **Revisión y Cierre:** Ismael Carrasco Mkhazni actúa como Revisor Técnico. Tras verificar el código y comprobar que cumple con los requisitos de la issue, Ismael procede a ejecutar las tareas finales de integración:
+    * **Fusión (Merge):** Integra los cambios de la rama de trabajo de José Luis en la rama principal `trunk`.
+    * **Cierre de Rama:** Elimina la rama `fix/footer-content-update` para mantener la limpieza del repositorio.
+    * **Actualización de Estado:** Mueve la issue correspondiente a la columna Done (Hecho) en el tablero de gestión del proyecto.
+7. **Despliegue Automático:** La fusión en `trunk` dispara el pipeline de despliegue (`CD_render.yml`). En cuestión de minutos, la nueva versión con los nombres correctos en el pie de página está disponible en producción para todos los usuarios.
 
 ## Entorno de desarrollo (800 palabras aproximadamente)
 Debe explicar cuál es el entorno de desarrollo que ha usado, cuáles son las versiones usadas y qué pasos hay que seguir para instalar tanto su sistema como los subsistemas relacionados para hacer funcionar el sistema al completo. Si se han usado distintos entornos de desarrollo por parte de distintos miembros del grupo, también debe referenciarlo aquí.
