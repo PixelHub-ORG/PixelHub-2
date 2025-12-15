@@ -1,5 +1,5 @@
-# pixel-hub-2
-* grupo 1 
+# Pixel-hub-2
+* Grupo 1 
 * Curso escolar: 2025/2026
 * Asignatura: Evolución y gestión de la configuración
 ## Miembros del grupo (en orden alfabético según apellido): 

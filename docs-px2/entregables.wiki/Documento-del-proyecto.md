@@ -1,54 +1,28 @@
-# TODO: 
-- Hablar del cambio propuesto en Visión global del proceso de desarrollo. (ISMAEL)
-- Revisar todo lo escrito en ese punto, hay cosas que no tienen mucho sentido como hablar de Rosemary que no lo hemos implementado nosotros. (no lo veo del todo mal hablar un poco de rosemary) (ISMAEL)
-- Guía de instalación HECHO, falta vagrant (HECHO: DIEGO)
-- Ejercicio de propuesta de cambio
-- Cambiar la visión global, se nota demasiado que es IA  (ISMAEL)
-- Rellenar las horas, una vez que esté completo el Clockify, y adjuntar el report (HECHO: DIEGO)
 
-(si hay alguna duda del TODO preguntar a Diego)
-
-
-El documento del proyecto debe ser un documento que sintetice los aspectos del proyecto elegido para su desarrollo con respecto a los temas vistos en clases. 
-
-Debe tener claramente identificados los nombres y apellidos de cada componente, grupo al que pertenecen (1, 2, o 3 mañana o tarde), curso académico, nombre del proyecto (seguir la política de nombres). Use este [[modelo de portada]] para el documento del proyecto y alójelo en su repositorio o en otro sitio accesible y que tenga posibilidad de verse el último momento de edicación. Puede usar el repositorio del proyecto usando para ello el lenguaje de [markdown](https://guides.github.com/features/mastering-markdown/) que ofrece github. En todo caso, debe ser un documento elaborado en formato [wiki]. 
-
-Será un documento presentado de manera profesional guardando la forma en los estilos y contenidos y con el máximo nivel de rigor académico y profesional.
-
-Tenga en cuenta los siguientes aspectos: 
-
-* Siempre diferencie claramente las secciones y subsecciones y para ello use etiquetas de encabezado como las que se disponen en los lenguajes tipo _markdown_
-
-# Apartados del documento 
-
-El documento del proyecto tendrá (al menos) que sintetizar los siguientes apartados:
-
-## Indicadores del proyecto
-
-(_debe dejar enlaces a evidencias que permitan de una forma sencilla analizar estos indicadores, con gráficas y/o con enlaces_)
+# 1. Indicadores del proyecto
 
 Miembro del equipo  | Horas | Commits | LoC | Test | Issues | Work Item| Dificultad
 ------------- | ------------- | ------------- | ------------- | ------------- | ------------- |  ------------- |  ------------- | 
-[Ángel Postigo, Estrella del Carmen](https://github.com/nombredeusuariodegithub) | 59:07 | 12 | 987 | 17 | 4 | Build my own dataset | M |
-[Carrasco Mkhazni, Ismael](https://github.com/nombredeusuariodegithub) | 50:26 | 8 | 468 | 3 | 6 | Download own dataset | M |
-[Cerdá Morales, Carlos](https://github.com/nombredeusuariodegithub) | 57:25 | 64 | 16.632 | 47 | 9 | Differences between versions | H |
-[Founoun El Aoud, Loubna](https://github.com/nombredeusuariodegithub) | 53:42 | 48 | 1.163| 4 | 5 | View user profile | L |
-[Moraza Vergara, José Luis](https://github.com/nombredeusuariodegithub) | 51:54 | 23 | 2.930 | 57 | 9 | Upload from Github/Zip | H |
-[Terrón Hernández, Diego](https://github.com/nombredeusuariodegithub) | 51:33 | 10 | 698 | 4 | 3 | Auth with ORCID | L |
+[Ángel Postigo, Estrella del Carmen](https://github.com/LWH9900) | 59:07 | 12 | 987 | 17 | 4 | Build my own dataset | M |
+[Carrasco Mkhazni, Ismael](https://github.com/15M4C4R) | 50:26 | 8 | 468 | 3 | 6 | Download own dataset | M |
+[Cerdá Morales, Carlos](https://github.com/CarlosCerdaMorales) | 57:25 | 64 | 16.632 | 47 | 9 | Differences between versions | H |
+[Founoun El Aoud, Loubna](https://github.com/luunaaf) | 53:42 | 48 | 1.163| 4 | 5 | View user profile | L |
+[Moraza Vergara, José Luis](https://github.com/JoseLu2121) | 51:54 | 23 | 2.930 | 57 | 9 | Upload from Github/Zip | H |
+[Terrón Hernández, Diego](https://github.com/diegoterron) | 51:33 | 10 | 698 | 4 | 3 | Auth with ORCID | L |
 **TOTAL** | 324:08 | 165  | 22878 | 132 | 36 |  | H(2)/M(2)/L(2) |
 
-[Clockify Report](clockify_report.pdf)
+[Clockify Report](Clockify_Report_Summary.pdf)
 
-## Integración con otros equipos
+# 2. Integración con otros equipos
 
 * [PixelHub-1](https://github.com/PixelHub-ORG/PixelHub-1): Hemos hecho integración con este grupo para tener un alcance más amplio para nuestro proyecto y optar a la nota máxima.
 - [Repositorio conjunto - PixelHub-X](https://github.com/PixelHub-ORG/PixelHub-X): Este es el repositorio en el que se muestra el proyecto final una vez realizada la integración.
 
-## Resumen ejecutivo 
+# 3. Resumen ejecutivo 
 
 El presente documento detalla la evolución y las optimizaciones aplicadas al proyecto UVLHub, un repositorio especializado en modelos de características (feature models) en formato UVL. Nuestro enfoque principal ha sido elevar la calidad del software mejorando su funcionalidad, eficiencia y la experiencia general del usuario, apoyándonos en metodologías de desarrollo robustas y herramientas modernas.
 
-### Desarrollo y Nuevas Funcionalidades
+## Desarrollo y Nuevas Funcionalidades
 
 Durante el ciclo de vida del proyecto, hemos priorizado tanto la corrección de errores críticos como la implementación de nuevas características de alto valor técnico y funcional:
 
@@ -67,33 +41,33 @@ Durante el ciclo de vida del proyecto, hemos priorizado tanto la corrección de 
 5. **Infraestructura de Pruebas: Fakenodo:**
    Para validar la integración con repositorios externos sin depender del entorno de producción de Zenodo, hemos desarrollado e implementado Fakenodo. Su principal aporte técnico es que ha sido construido como un **microservicio independiente**, contando con su propio despliegue en **Render**, al igual que la aplicación principal, garantizando un entorno desacoplado.
 
-### Stack Tecnológico
+## Stack Tecnológico
 
 Para garantizar un desarrollo ágil y pruebas rigurosas, hemos empleado un conjunto de herramientas estándar que incluye **Visual Studio Code**, **MariaDB**, **Selenium** y **Locust** (para pruebas de carga y funcionales). El despliegue de la aplicación y la base de datos se gestiona en **Render**, aunque el proyecto mantiene compatibilidad total con Docker y Vagrant para entornos virtualizados.
 
 La Integración Continua (CI) se gestiona a través de **GitHub Actions**, asegurando que cada modificación en el código sea testeada y notificada automáticamente antes de su fusión, reduciendo drásticamente la introducción de regresiones o fallos.
 
-### Metodología y Flujo de Trabajo
+## Metodología y Flujo de Trabajo
 
 Nuestra estrategia de control de versiones sigue el modelo **EGC-flow**, estructurado en torno a *feature-tasks*. Este enfoque nos permite trabajar en ramas aisladas para cada funcionalidad, las cuales se fusionan frecuentemente con la rama de desarrollo principal (**trunk**). Paralelamente, mantenemos una rama **main** persistente que refleja únicamente las versiones estables y liberadas del producto.
 
 Para agilizar el desarrollo interno, hemos optado por prescindir de las Pull Requests (PR) dentro del equipo, reservando este mecanismo únicamente para integraciones con equipos externos.
 
-### Cultura de Buenas Prácticas
+## Cultura de Buenas Prácticas
 
 La disciplina ha sido un pilar fundamental en este trabajo. Nos hemos adherido estrictamente a buenas prácticas de ingeniería de software, tales como el mantenimiento de un código limpio, una estructura de ramas coherente y el uso intensivo de integración continua. Esta filosofía de mejora constante nos ha permitido adaptar nuestros procesos ante nuevos desafíos, garantizando entregas de software consistentes y de alta calidad.
 
-### Conclusión
+## Conclusión
 
 En definitiva, este proyecto ha supuesto una iteración significativa en la mejora de la plataforma UVLHub. Gracias a la combinación de herramientas avanzadas de testing, un flujo de trabajo ágil y una gestión rigurosa del código, hemos logrado optimizar el sistema y ofrecer una experiencia de usuario superior.
 
-## Descripción del sistema
+# 4. Descripción del sistema
 
 El sistema desarrollado es una plataforma para la gestión, visualización y distribución de **modelos y pixdatasets**. Su objetivo principal es proporcionar a los usuarios una forma eficiente de descubrir, compartir y reutilizar modelos, facilitando la colaboración en diferentes áreas de investigación. Además, permite a los autores disponer de herramientas avanzadas para el control de versiones, la importación de código y la gestión personalizada de sus archivos, optimizando tanto el descubrimiento como la creación de nuevos conjuntos de datos.
 
 La plataforma se basa en un conjunto de subsistemas que interactúan entre sí para proporcionar una experiencia fluida. Entre estos subsistemas se incluyen la gestión unificada de identidad, la manipulación dinámica de *filemodels* a través de un sistema de carrito, y herramientas de integración con repositorios externos.
 
-### **Arquitectura del Sistema**
+## **Arquitectura del Sistema**
 
 El sistema está diseñado bajo una arquitectura modular, lo que facilita su mantenimiento, escalabilidad y la incorporación de nuevos estándares como el formato `.pix`. Los componentes principales incluyen:
 
@@ -158,7 +132,7 @@ A lo largo del desarrollo de la plataforma, se han implementado y mejorado varia
 7. **Interfaz de Usuario y Navegación:**
    - Se han realizado mejoras generales en la interfaz para integrar estas nuevas herramientas, facilitando la navegación entre la vista de detalles del dataset, el carrito de compra y el panel de administración del usuario.
 
-## Visión global del proceso de desarrollo
+# 5. Visión global del proceso de desarrollo
 
 El proceso de desarrollo del sistema **PixelHub-2** se ha estructurado bajo los principios de la **Ingeniería de Software Moderna**, priorizando la reproducibilidad, la automatización y la calidad continua. Dado que el sistema integra gestión de datos complejos, interfaces web y comunicación con repositorios externos (Zenodo), el ciclo de vida del desarrollo (SDLC) se aleja de métodos rígidos para adoptar un enfoque ágil, apoyado firmemente en prácticas de **DevOps** y **Containerización**.
 
@@ -218,7 +192,7 @@ Para visualizar cómo encajan estas piezas, analizamos el ciclo de vida completo
     * **Actualización de Estado:** Mueve la issue correspondiente a la columna Done (Hecho) en el tablero de gestión del proyecto.
 7. **Despliegue Automático:** La fusión en `trunk` dispara el pipeline de despliegue (`CD_render.yml`). En cuestión de minutos, la nueva versión con los nombres correctos en el pie de página está disponible en producción para todos los usuarios.
 
-## Entorno de desarrollo (800 palabras aproximadamente)
+## 5.1 Entorno de desarrollo
 Debe explicar cuál es el entorno de desarrollo que ha usado, cuáles son las versiones usadas y qué pasos hay que seguir para instalar tanto su sistema como los subsistemas relacionados para hacer funcionar el sistema al completo. Si se han usado distintos entornos de desarrollo por parte de distintos miembros del grupo, también debe referenciarlo aquí.
 
 A continuación, se detallan los requisitos, las herramientas seleccionadas y los pasos necesarios para desplegar el sistema completo.# Entorno de Desarrollo de UVLHub
@@ -227,18 +201,18 @@ A continuación, se detallan los requisitos, las herramientas seleccionadas y lo
 
 Para el correcto funcionamiento del sistema, se han establecido las siguientes versiones y herramientas base, las cuales son mandatorias para garantizar la compatibilidad del código:
 
-- **Sistema Operativo Base:** Se utiliza **Ubuntu 22.04 LTS ** como el sistema de referencia para producción y para las máquinas virtuales de desarrollo.
+- **Sistema Operativo Base:** Se utiliza **Ubuntu 22.04 LTS** como el sistema de referencia para producción y para las máquinas virtuales de desarrollo.
 - **Lenguaje de Programación:** El núcleo de la aplicación está construido sobre **Python 3.12**. Esta versión es estricta, tal como se especifica en la configuración del proyecto, para aprovechar las últimas mejoras de rendimiento y tipado del lenguaje.
 - **Orquestación de Contenedores:** **Docker** y **Docker Compose** son las piezas centrales que permiten levantar la aplicación web junto con sus servicios satélites (bases de datos, simuladores de API, etc.) de manera aislada.
 - **Virtualización (Opcional):** Para entornos que requieren una simulación completa de la infraestructura de red, se emplean **VirtualBox** y **Vagrant**.
 
 ### 2. Entorno de Desarrollo Integrado (IDE)
 
-El equipo ha utilizado de **Visual Studio Code (VS Code)**
+El equipo ha utilizado **Visual Studio Code (VS Code)**
 
 #### Configuración y Extensiones
 
-Extensiones instaladas en VS Codes:
+Extensiones instaladas en VS Code:
 
 1. **Docker:** Permite gestionar contenedores, imágenes, volúmenes y redes de Docker directamente desde Visual Studio Code
 2. **Python:** Proporciona soporte completo para el desarrollo en Python, incluyendo resaltado de sintaxis, autocompletado inteligente (IntelliSense), ejecución de scripts y gestión de entornos virtuales.
@@ -407,7 +381,7 @@ Abrir un navegador web y acceder a para comprobar que PixelHub funciona:
 http://localhost
 ```
 
-Si queremos comprobar que el contenedor de fakenodo a funcionado correctamente abriremos en el navegador:
+Si queremos comprobar que el contenedor de fakenodo ha funcionado correctamente abriremos en el navegador:
 ```
 http://localhost:5001
 ```
@@ -635,7 +609,7 @@ flask run --port 5001
 
 
 
-## Ejercicio de propuesta de cambio
+## 5.2 Ejercicio de propuesta de cambio
 
 Para ilustrar el proceso de evolución y gestión de la configuración del proyecto **PixelHub-2**, se presenta a continuación un caso práctico real. Este ejercicio describe el ciclo de vida completo de una modificación en el sistema, desde su reporte como incidencia hasta su despliegue en producción, detallando los comandos y herramientas utilizados en cada etapa.
 
@@ -741,7 +715,7 @@ Una vez que el CI ha marcado la rama como válida (check verde), interviene el *
 
 La actualización de la rama `trunk` activa automáticamente el flujo de despliegue (`CD_render.yml`). El sistema construye una nueva imagen Docker con los cambios y la despliega en **Render**. En cuestión de minutos, el nuevo pie de página con los nombres del equipo es visible para todos los usuarios en el entorno de producción.
 
-## Conclusiones y trabajo futuro
+## 5.3 Conclusiones y trabajo futuro
 El desarrollo del proyecto PixelHub2 nos ha permitido conocer en más profundidad como funcionan los flujos de trabajos basados en integración y despliegue continuos, implementando desde cero pipelines que nos han permitido ahorrar tiempo de desarrollo, despliegue y depuración.
 
 El hecho de integrarnos con el grupo de trabajo `PixelHub1`, ha supuesto un gran desafío de coordinación.Elaborar una buena metodología para poder sincronizar el código y configuraciones externas de ambos proyectos ha sido un factor clave para poder garantizar la estabilidad del sistema, permitiendo a ambos equipos colaborar sin apenas conflictos.
@@ -752,13 +726,13 @@ Además, el proyecto nos ha brindado la oportunidad de aplicar buenas prácticas
 
 De cara al futuro, se identifican varias áreas de mejora que podrían optimizar aún más la plataforma y la dinámica del equipo:
 
-Optimización de la interfaz del carrito de compra: La experiencia de usuario en el módulo del carrito podría ser más intuitiva y visualmente clara, facilitando la selección, visualización y descarga de los modelo. Mejorar esta interfaz contribuirá a una interacción más ágil y satisfactoria para los usuarios.
+Optimización de la interfaz del carrito de compra: La experiencia de usuario en el módulo del carrito podría ser más intuitiva y visualmente clara, facilitando la selección, visualización y descarga de los modelos. Mejorar esta interfaz contribuirá a una interacción más ágil y satisfactoria para los usuarios.
 
-Fortalecer la comunicación del equipo: Durante el desarrollo, en algunas ocasiones se han producido errores o confusiones derivadas de una comunicación insuficiente entre los miembros del equipo. Una Una comunicación  más eficiente permitirá reducir malentendidos y aumentar la productividad colectiva.
+Fortalecer la comunicación del equipo: Durante el desarrollo, en algunas ocasiones se han producido errores o confusiones derivadas de una comunicación insuficiente entre los miembros del equipo. Una comunicación  más eficiente permitirá reducir malentendidos y aumentar la productividad colectiva.
 
 Implementación de pruebas automatizadas con Selenium para Docker: Actualmente, la ejecución de pruebas podría ampliarse integrando Selenium dentro de los contenedores Docker, lo que permitiría validar la aplicación de manera consistente en entornos contenerizados y garantizar que los cambios no introduzcan errores en la interfaz o la funcionalidad.
 
-## Declaración de IA
+## 5.4 Declaración de IA
 
 Durante el desarrollo del proyecto PixelHub2, se ha utilizado la Inteligencia Artificial como una herramienta de apoyo complementaria, con el objetivo de mejorar la eficiencia y la calidad del trabajo realizado. Concretamente, la IA ha sido empleada para:
 
