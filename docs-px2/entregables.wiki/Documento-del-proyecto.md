@@ -636,7 +636,113 @@ flask run --port 5001
 
 
 ## Ejercicio de propuesta de cambio
-Se presentará un ejercicio con una propuesta concreta de cambio en la que a partir de un cambio que se requiera, se expliquen paso por paso (incluyendo comandos y uso de herramientas) lo que hay que hacer para realizar dicho cambio. Debe ser un ejercicio ilustrativo de todo el proceso de evolución y gestión de la configuración del proyecto. 
+
+Para ilustrar el proceso de evolución y gestión de la configuración del proyecto **PixelHub-2**, se presenta a continuación un caso práctico real. Este ejercicio describe el ciclo de vida completo de una modificación en el sistema, desde su reporte como incidencia hasta su despliegue en producción, detallando los comandos y herramientas utilizados en cada etapa.
+
+### Definición del Cambio (Issue #45)
+
+El cambio se origina a partir de un reporte de error en la interfaz de usuario. Se ha documentado la incidencia en el sistema de seguimiento (GitHub Issues) con la siguiente información:
+
+* **Título:** Corrección del contenido del pie de página (Footer).
+* **Tipo:** `Bug` / `Content`
+* **Descripción del error:** El contenido del pie de página es incorrecto. Actualmente muestra una lista genérica de universidades ("University of Seville · University of Malaga · University of Ulm") en lugar de los nombres de los integrantes del equipo de desarrollo, tal como se requiere para la versión actual.
+* **Pasos para reproducir:**
+    1.  Entrar en la página principal de la aplicación.
+    2.  Hacer *scroll* hasta el final de la página.
+    3.  Observar el texto actual en el *footer*.
+* **Comportamiento esperado:** El pie de página debe mostrar: `PIXELHUB.IO(dev) Estrella Ángel Postigo · Ismael Carrasco Mkhazni · Carlos Cerdá Morales · Loubna Founoun El Aoud · José Luis Moraza Vergara · Diego Terrón Hernández`.
+
+#### Asignación de Roles
+Para este ejercicio, el flujo de trabajo involucra a los siguientes miembros:
+* **Autor/Asignante:** Estrella Ángel Postigo.
+* **Desarrollador:** José Luis Moraza Vergara.
+* **Revisor Técnico:** Ismael Carrasco Mkhazni.
+
+### Ciclo de Ejecución Paso a Paso
+
+A continuación, se detalla el procedimiento técnico seguido para resolver la incidencia.
+
+#### Paso 1: Gestión de la Configuración (Inicio)
+
+El desarrollador (**José Luis**) comienza sincronizando su repositorio local con la rama principal para asegurar que trabaja sobre la última versión estable. Posteriormente, crea una rama de funcionalidad específica para aislar el cambio.
+
+```bash
+# 1. Sincronizar con el remoto
+git checkout trunk
+git pull origin trunk
+
+# 2. Crear la rama de trabajo siguiendo la nomenclatura estándar (tipo/descripción)
+git checkout -b fix/footer-names-45
+````
+
+#### Paso 2: Implementación (Desarrollo)
+
+El desarrollador localiza el archivo responsable de la estructura base de la interfaz: `app/templates/base_template.html`. Utilizando **Visual Studio Code**, procede a modificar el bloque HTML correspondiente al pie de página.
+
+**Código Modificado (Diff):**
+
+```html
+<div class="col-sm-6 text-end">
+    University of Seville · University of Malaga · University of Ulm
+</div>
+------------------------------------------------------------
+<div class="col-sm-6 text-end">
+    Estrella Ángel Postigo · Ismael Carrasco Mkhazni · Carlos Cerdá Morales · Loubna Founoun El Aoud · José Luis Moraza Vergara · Diego Terrón Hernández
+</div>
+```
+
+#### Paso 3: Aseguramiento de la Calidad (QA Local)
+
+Antes de confirmar los cambios, es imperativo verificar que la modificación no ha introducido errores de sintaxis o regresiones en la interfaz. El desarrollador utiliza el entorno local (desplegado previamente con Docker o Vagrant) para validar visualmente el cambio y ejecuta las pruebas automáticas.
+
+```bash
+# 1. Validación visual: Acceder a http://localhost:5000 y verificar el footer.
+
+# 2. Ejecución de tests unitarios y de integración para evitar regresiones
+rosemary test
+```
+
+#### Paso 4: Confirmación y Envío (Git)
+
+Una vez validado el cambio, se procede a registrarlo en el control de versiones. Se utiliza **Commitlint** para asegurar que el mensaje del commit cumpla con el estándar semántico del proyecto.
+
+```bash
+# 1. Añadir el archivo modificado al área de preparación (staging)
+git add app/templates/base_template.html
+
+# 2. Realizar el commit siguiendo la convención Conventional Commits
+git commit -m "fix: update footer content with team member names (Issue #45)"
+
+# 3. Subir la rama al repositorio remoto (GitHub)
+git push origin fix/footer-names-45
+```
+
+#### Paso 5: Integración Continua (CI)
+
+Al detectar la subida de la nueva rama (`push`), la plataforma **GitHub Actions** dispara automáticamente los flujos de trabajo de Integración Continua definidos en `.github/workflows/`.
+
+  * **Linting:** Se verifica que el código HTML/Jinja2 cumple con las reglas de estilo.
+  * **Testing:** Se ejecuta la batería de pruebas en un entorno aislado en la nube.
+
+Si alguna de estas verificaciones falla, el sistema notifica al desarrollador para que corrija el error antes de continuar.
+
+#### Paso 6: Revisión y Cierre (Gestión)
+
+Una vez que el CI ha marcado la rama como válida (check verde), interviene el **Revisor Técnico (Ismael)**.
+
+1.  **Code Review:** Ismael revisa el código en GitHub para asegurar que el cambio cumple estrictamente con lo solicitado en la *issue* y no incluye código innecesario.
+2.  **Fusión (Merge):** Tras aprobar el cambio, Ismael procede a integrar la rama de corrección en la rama principal.
+    ```bash
+    git checkout trunk
+    git pull origin trunk
+    git merge fix/footer-names-45
+    git push origin trunk
+    ```
+3.  **Cierre:** Se elimina la rama `fix/footer-names-45` (tanto local como remota) para mantener la limpieza del repositorio y se mueve la *Issue \#45* a la columna **Done**.
+
+#### Paso 7: Despliegue Continuo (CD)
+
+La actualización de la rama `trunk` activa automáticamente el flujo de despliegue (`CD_render.yml`). El sistema construye una nueva imagen Docker con los cambios y la despliega en **Render**. En cuestión de minutos, el nuevo pie de página con los nombres del equipo es visible para todos los usuarios en el entorno de producción.
 
 ## Conclusiones y trabajo futuro
 El desarrollo del proyecto PixelHub2 nos ha permitido conocer en más profundidad como funcionan los flujos de trabajos basados en integración y despliegue continuos, implementando desde cero pipelines que nos han permitido ahorrar tiempo de desarrollo, despliegue y depuración.
