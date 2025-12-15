@@ -667,11 +667,10 @@ A continuación, se detalla el procedimiento técnico seguido para resolver la i
 El desarrollador (**José Luis**) comienza sincronizando su repositorio local con la rama principal para asegurar que trabaja sobre la última versión estable. Posteriormente, crea una rama de funcionalidad específica para aislar el cambio.
 
 ```bash
-# 1. Sincronizar con el remoto
+
 git checkout trunk
 git pull origin trunk
 
-# 2. Crear la rama de trabajo siguiendo la nomenclatura estándar (tipo/descripción)
 git checkout -b fix/footer-names-45
 ````
 
@@ -707,13 +706,11 @@ rosemary test
 Una vez validado el cambio, se procede a registrarlo en el control de versiones. Se utiliza **Commitlint** para asegurar que el mensaje del commit cumpla con el estándar semántico del proyecto.
 
 ```bash
-# 1. Añadir el archivo modificado al área de preparación (staging)
+
 git add app/templates/base_template.html
 
-# 2. Realizar el commit siguiendo la convención Conventional Commits
 git commit -m "fix: update footer content with team member names (Issue #45)"
 
-# 3. Subir la rama al repositorio remoto (GitHub)
 git push origin fix/footer-names-45
 ```
 
