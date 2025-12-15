@@ -175,6 +175,12 @@ El "pegamento" que une este proceso es **GitHub Actions**. El repositorio cuenta
 * **CI (Continuous Integration):** Cada subida de código dispara validaciones automáticas. Se verifica el estilo del código (Linting), se ejecutan las baterías de pruebas unitarias y se valida la semántica de los commits. Si algún paso falla, el cambio es rechazado automáticamente.
 * **CD (Continuous Deployment):** Una vez que el código se fusiona en la rama principal (`trunk`), se activa el despliegue automático. Se construyen imágenes de Docker optimizadas para producción y se despliegan en la plataforma Render, actualizando la aplicación en vivo sin intervención manual.
 
+Los enlaces de render tanto de la aplicación principal como de la aplicación de fakenodo son los siguientes:
+
+- PixelHub2: `https://pixelhub-2.onrender.com/`
+
+- Fakenodo: `https://pixelhub-2-51iz.onrender.com/api/depositions`
+
 ### Ejemplo Ilustrativo: Ciclo de Vida de un Cambio
 
 Para visualizar cómo encajan estas piezas, analizamos el ciclo de vida completo de una corrección real: **"Corrección del contenido del pie de página (Footer)"**.
